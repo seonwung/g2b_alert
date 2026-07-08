@@ -1,0 +1,15 @@
+{
+  "api_key": "7907b103adcb63ac82c6fd1fd13e1553e17a55e268b887afa13cdb884c14aa7c",
+  "keywords": "긴급",
+  "interval": "5",
+  "selected_categories": [
+    "service",
+    "goods",
+    "works",
+    "etc"
+  ],
+  "bootstrap_minutes": 30,
+  "overlap_minutes": 10,
+  "request_timeout_seconds": 30,
+  "num_of_rows": 100
+}

@@ -1,0 +1,15 @@
+{
+  "api_key": "PUT_YOUR_G2B_API_KEY_HERE",
+  "keywords": "fids, check-in counter",
+  "interval": "5",
+  "selected_categories": [
+    "service",
+    "goods",
+    "works",
+    "etc"
+  ],
+  "bootstrap_minutes": 30,
+  "overlap_minutes": 10,
+  "request_timeout_seconds": 30,
+  "num_of_rows": 100
+}
