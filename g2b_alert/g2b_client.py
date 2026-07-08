@@ -37,7 +37,7 @@ class BidItem:
 
     @property
     def unique_id(self):
-        return f"{self.bid_no}_{self.bid_ord or '000'}"
+        return f"{self.bid_no}-{self.bid_ord or '000'}"
 
 
 def parse_items(data):
