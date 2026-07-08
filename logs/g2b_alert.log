@@ -36,3 +36,55 @@
 2026-07-08 15:06:14 [INFO] g2b_alert - 확인 완료: 새 알림 0건
 2026-07-08 15:14:24 [INFO] g2b_alert - 프로그램 준비 완료
 2026-07-08 15:14:24 [INFO] g2b_alert - Program started.
+2026-07-08 16:49:24 [INFO] g2b_alert - 프로그램 준비 완료
+2026-07-08 16:49:24 [INFO] g2b_alert - Program started.
+2026-07-08 16:49:50 [INFO] g2b_alert - 프로그램 준비 완료
+2026-07-08 16:49:50 [INFO] g2b_alert - Program started.
+2026-07-08 16:55:22 [INFO] g2b_alert - 프로그램 준비 완료
+2026-07-08 16:55:22 [INFO] g2b_alert - Program started.
+2026-07-08 16:57:50 [INFO] g2b_alert - 프로그램 준비 완료
+2026-07-08 16:57:50 [INFO] g2b_alert - Program started.
+2026-07-08 16:58:03 [INFO] g2b_alert - 감시 시작
+2026-07-08 16:58:03 [INFO] g2b_alert - 키워드: 긴급
+2026-07-08 16:58:03 [INFO] g2b_alert - 확인 주기: 5분
+2026-07-08 16:58:03 [INFO] g2b_alert - 예상 API 호출량: 하루 약 1,152회
+2026-07-08 16:58:03 [INFO] g2b_alert - 조회 종류: 용역, 물품, 공사, 기타
+2026-07-08 16:58:03 [INFO] g2b_alert - ----------------------------------------------------------------------
+2026-07-08 16:58:03 [INFO] g2b_alert - 조회 1회차 시작
+2026-07-08 16:58:03 [INFO] g2b_alert - 공고 조회: 2026-07-08 14:56부터 2026-07-08 16:58까지
+2026-07-08 16:58:07 [INFO] g2b_alert - 알림: [용역] 회계 세무 자문 및 지원 용역(2026~2028회계연도 귀속)[긴급]
+2026-07-08 16:58:07 [INFO] g2b_alert - 공고번호: R26BK01621261 / 차수: 000
+2026-07-08 16:58:07 [INFO] g2b_alert - 매칭 키워드: 긴급
+2026-07-08 16:58:07 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01621261&bidPbancOrd=000
+2026-07-08 16:58:07 [INFO] g2b_alert - 알림: [용역] 2026년 양식어장 정화사업(긴급)
+2026-07-08 16:58:07 [INFO] g2b_alert - 공고번호: R26BK01623625 / 차수: 000
+2026-07-08 16:58:07 [INFO] g2b_alert - 매칭 키워드: 긴급
+2026-07-08 16:58:07 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01623625&bidPbancOrd=000
+2026-07-08 16:58:09 [INFO] g2b_alert - 알림: [물품] 농업회사법인(주)참 사과선별기 제작·설치(입찰대행)(협상에의한계약)(긴급)
+2026-07-08 16:58:09 [INFO] g2b_alert - 공고번호: R26BK01623410 / 차수: 000
+2026-07-08 16:58:09 [INFO] g2b_alert - 매칭 키워드: 긴급
+2026-07-08 16:58:09 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01623410&bidPbancOrd=000
+2026-07-08 16:58:09 [INFO] g2b_alert - 알림: [물품] [긴급] 정동고등학교 교육환경개선사업 냉난방기 구매 설치
+2026-07-08 16:58:09 [INFO] g2b_alert - 공고번호: R26BK01619593 / 차수: 000
+2026-07-08 16:58:09 [INFO] g2b_alert - 매칭 키워드: 긴급
+2026-07-08 16:58:09 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01619593&bidPbancOrd=000
+2026-07-08 16:58:10 [INFO] g2b_alert - 알림: [공사] [긴급]성안중 외벽개선 및 옥상방수공사
+2026-07-08 16:58:10 [INFO] g2b_alert - 공고번호: R26BK01623392 / 차수: 000
+2026-07-08 16:58:10 [INFO] g2b_alert - 매칭 키워드: 긴급
+2026-07-08 16:58:10 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01623392&bidPbancOrd=000
+2026-07-08 16:58:10 [INFO] g2b_alert - 알림: [공사] (한해대비) 죽산양수장 수중모터펌프 긴급 교체공사
+2026-07-08 16:58:10 [INFO] g2b_alert - 공고번호: R26BK01622479 / 차수: 000
+2026-07-08 16:58:10 [INFO] g2b_alert - 매칭 키워드: 긴급
+2026-07-08 16:58:10 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01622479&bidPbancOrd=000
+2026-07-08 16:58:10 [INFO] g2b_alert - 알림: [공사] [긴급] (가칭)영종학교 신축 전기공사(계속비)
+2026-07-08 16:58:10 [INFO] g2b_alert - 공고번호: R26BK01622301 / 차수: 000
+2026-07-08 16:58:10 [INFO] g2b_alert - 매칭 키워드: 긴급
+2026-07-08 16:58:10 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01622301&bidPbancOrd=000
+2026-07-08 16:58:10 [INFO] g2b_alert - 알림: [공사] 2026년도 바로처리 긴급 생활불편 민원처리 단가계약(1권역 2차)
+2026-07-08 16:58:10 [INFO] g2b_alert - 공고번호: R26BK01620633 / 차수: 000
+2026-07-08 16:58:10 [INFO] g2b_alert - 매칭 키워드: 긴급
+2026-07-08 16:58:10 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01620633&bidPbancOrd=000
+2026-07-08 16:58:11 [INFO] g2b_alert - 마지막 확인 시각 저장: 2026-07-08 16:58:03
+2026-07-08 16:58:11 [INFO] g2b_alert - 확인 완료: 새 알림 8건
+2026-07-08 16:59:46 [INFO] g2b_alert - 프로그램 준비 완료
+2026-07-08 16:59:46 [INFO] g2b_alert - Program started.

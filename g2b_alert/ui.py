@@ -39,14 +39,19 @@ class G2BAlertApp:
     def __init__(self, root):
         self.root = root
         self.root.title("\ub098\ub77c\uc7a5\ud130 \ud0a4\uc6cc\ub4dc \uc54c\ub9bc")
-        self.root.geometry("780x740")
-        self.root.minsize(720, 680)
+        self.root.geometry("780x780")
+        self.root.minsize(720, 720)
+        self.root.resizable(True, True)
         self.root.configure(bg=APP_BG)
 
         self.logger = setup_logger()
         self.config = load_config()
         self.scheduler = None
         self.api_key_visible = False
+        self.detached_log_window = None
+        self.detached_log_box = None
+        self.fullscreen_log_window = None
+        self.fullscreen_log_box = None
 
         self.label_style = {"bg": CARD_BG, "fg": TEXT, "font": FONT_BOLD}
         self.sub_label_style = {"bg": CARD_BG, "fg": SUB_TEXT, "font": ("\ub9d1\uc740 \uace0\ub515", 9)}
@@ -172,7 +177,7 @@ class G2BAlertApp:
 
         self.keyword_text = tk.Text(
             keyword_frame,
-            height=5,
+            height=3,
             bg=INPUT_BG,
             fg=TEXT,
             relief="solid",
@@ -202,8 +207,6 @@ class G2BAlertApp:
         self.test_btn.pack(side="left", padx=(0, 8))
         self.reset_btn = self.make_button(action_frame, "\ud655\uc778 \uae30\ub85d \ucd08\uae30\ud654", self.reset_records, DANGER, width=16)
         self.reset_btn.pack(side="left", padx=(0, 8))
-        self.clear_log_btn = self.make_button(action_frame, "\ud654\uba74 \ub85c\uadf8 \uc9c0\uc6b0\uae30", self.clear_log, WARNING, width=14)
-        self.clear_log_btn.pack(side="right")
 
     def _build_status(self, parent):
         status_frame = tk.Frame(parent, bg=APP_BG)
@@ -234,6 +237,16 @@ class G2BAlertApp:
             bd=1,
         )
         log_frame.pack(fill="both", expand=True, padx=16, pady=(0, 14))
+
+        log_toolbar = tk.Frame(log_frame, bg=CARD_BG)
+        log_toolbar.pack(fill="x", pady=(0, 8))
+        self.detach_log_btn = self.make_small_button(log_toolbar, "\ubd84\ub9ac", self.open_detached_log, PRIMARY)
+        self.detach_log_btn.pack(side="left", padx=(0, 6))
+        self.fullscreen_log_btn = self.make_small_button(log_toolbar, "\uc804\uccb4\ud654\uba74", self.open_fullscreen_log, SUCCESS)
+        self.fullscreen_log_btn.pack(side="left", padx=(0, 6))
+        self.clear_log_btn = self.make_small_button(log_toolbar, "\ud654\uba74 \ub85c\uadf8 \uc9c0\uc6b0\uae30", self.clear_log, WARNING)
+        self.clear_log_btn.pack(side="right")
+
         log_inner = tk.Frame(log_frame, bg=CARD_BG)
         log_inner.pack(fill="both", expand=True)
         log_scroll = tk.Scrollbar(log_inner)
@@ -265,6 +278,9 @@ class G2BAlertApp:
     def make_button(self, parent, text, command, bg_color, width=13):
         return tk.Button(parent, text=text, command=command, width=width, bg=bg_color, fg="white", activebackground=bg_color, activeforeground="white", disabledforeground="#E5E7EB", relief="flat", bd=0, cursor="hand2", font=FONT_BOLD, padx=8, pady=7)
 
+    def make_small_button(self, parent, text, command, bg_color):
+        return tk.Button(parent, text=text, command=command, bg=bg_color, fg="white", activebackground=bg_color, activeforeground="white", disabledforeground="#E5E7EB", relief="flat", bd=0, cursor="hand2", font=("\ub9d1\uc740 \uace0\ub515", 9, "bold"), padx=9, pady=4)
+
     def log(self, msg):
         self.root.after(0, lambda: self._append_log(msg))
         if msg:
@@ -274,9 +290,10 @@ class G2BAlertApp:
         self.root.after(0, lambda: self.status_var.set(f"\uc0c1\ud0dc: {msg}"))
 
     def clear_log(self):
-        self.log_box.config(state="normal")
-        self.log_box.delete("1.0", "end")
-        self.log_box.config(state="disabled")
+        for log_box in self._get_log_boxes():
+            log_box.config(state="normal")
+            log_box.delete("1.0", "end")
+            log_box.config(state="disabled")
         self.log("\ud654\uba74 \ub85c\uadf8\ub97c \uc9c0\uc6e0\uc2b5\ub2c8\ub2e4.")
 
     def toggle_api_key(self):
@@ -288,26 +305,131 @@ class G2BAlertApp:
         from datetime import datetime
 
         line = "\n" if msg == "" else f"[{datetime.now().strftime('%H:%M:%S')}] {msg}\n"
-        self.log_box.config(state="normal")
+        for log_box in self._get_log_boxes():
+            self._insert_log_line(log_box, line)
+
+    def _get_log_boxes(self):
+        log_boxes = [self.log_box]
+        if self._widget_exists(self.detached_log_box):
+            log_boxes.append(self.detached_log_box)
+        if self._widget_exists(self.fullscreen_log_box):
+            log_boxes.append(self.fullscreen_log_box)
+        return log_boxes
+
+    def _widget_exists(self, widget):
+        if widget is None:
+            return False
+        try:
+            return bool(widget.winfo_exists())
+        except tk.TclError:
+            return False
+
+    def _insert_log_line(self, log_box, line, scroll=True):
+        log_box.config(state="normal")
         url_pattern = re.compile(r"https?://[^\s]+")
         last_end = 0
         for match in url_pattern.finditer(line):
             start, end = match.span()
             url = match.group()
             if start > last_end:
-                self.log_box.insert("end", line[last_end:start])
+                log_box.insert("end", line[last_end:start])
             tag_name = f"log_link_{self.log_link_count}"
             self.log_link_count += 1
-            self.log_box.insert("end", url, tag_name)
-            self.log_box.tag_config(tag_name, foreground="#60A5FA", underline=True)
-            self.log_box.tag_bind(tag_name, "<Button-1>", lambda event, link=url: self.open_log_link(link))
-            self.log_box.tag_bind(tag_name, "<Enter>", lambda event: self.log_box.config(cursor="hand2"))
-            self.log_box.tag_bind(tag_name, "<Leave>", lambda event: self.log_box.config(cursor=""))
+            log_box.insert("end", url, tag_name)
+            log_box.tag_config(tag_name, foreground="#60A5FA", underline=True)
+            log_box.tag_bind(tag_name, "<Button-1>", lambda event, link=url: self.open_log_link(link))
+            log_box.tag_bind(tag_name, "<Enter>", lambda event, box=log_box: box.config(cursor="hand2"))
+            log_box.tag_bind(tag_name, "<Leave>", lambda event, box=log_box: box.config(cursor=""))
             last_end = end
         if last_end < len(line):
-            self.log_box.insert("end", line[last_end:])
-        self.log_box.see("end")
-        self.log_box.config(state="disabled")
+            log_box.insert("end", line[last_end:])
+        if scroll:
+            log_box.see("end")
+        log_box.config(state="disabled")
+
+    def _copy_current_log_to(self, target_log_box):
+        content = self.log_box.get("1.0", "end-1c")
+        if not content:
+            return
+        for line in content.splitlines(True):
+            self._insert_log_line(target_log_box, line, scroll=False)
+        target_log_box.see("end")
+
+    def open_detached_log(self):
+        self._open_log_window(
+            "detached_log_window",
+            "detached_log_box",
+            "\ub85c\uadf8 \ubd84\ub9ac\ucc3d",
+            geometry="900x540",
+            minsize=(720, 420),
+        )
+
+    def open_fullscreen_log(self):
+        self._open_log_window(
+            "fullscreen_log_window",
+            "fullscreen_log_box",
+            "\ub85c\uadf8 \uc804\uccb4\ud654\uba74",
+            fullscreen=True,
+        )
+
+    def _open_log_window(self, window_attr, box_attr, title, geometry=None, minsize=None, fullscreen=False):
+        existing_window = getattr(self, window_attr)
+        if self._widget_exists(existing_window):
+            existing_window.lift()
+            existing_window.focus_force()
+            return
+
+        window = tk.Toplevel(self.root)
+        window.title(title)
+        window.configure(bg=APP_BG)
+
+        def on_close():
+            setattr(self, window_attr, None)
+            setattr(self, box_attr, None)
+            if self._widget_exists(window):
+                window.destroy()
+
+        if fullscreen:
+            window.attributes("-fullscreen", True)
+            window.bind("<Escape>", lambda event: on_close())
+        else:
+            window.geometry(geometry)
+            if minsize:
+                window.minsize(*minsize)
+
+        frame = tk.Frame(window, bg=CARD_BG, padx=10, pady=10)
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+
+        toolbar = tk.Frame(frame, bg=CARD_BG)
+        toolbar.pack(fill="x", pady=(0, 8))
+        tk.Label(toolbar, text=title, bg=CARD_BG, fg=PRIMARY_DARK, font=FONT_BOLD).pack(side="left")
+        self.make_small_button(toolbar, "\ub2eb\uae30", on_close, GRAY).pack(side="right")
+
+        log_inner = tk.Frame(frame, bg=CARD_BG)
+        log_inner.pack(fill="both", expand=True)
+        log_scroll = tk.Scrollbar(log_inner)
+        log_scroll.pack(side="right", fill="y")
+        log_box = tk.Text(
+            log_inner,
+            bg=LOG_BG,
+            fg=LOG_TEXT,
+            insertbackground=LOG_TEXT,
+            relief="flat",
+            bd=0,
+            font=FONT,
+            wrap="word",
+            yscrollcommand=log_scroll.set,
+            padx=10,
+            pady=8,
+        )
+        log_box.pack(side="left", fill="both", expand=True)
+        log_box.config(state="disabled")
+        log_scroll.config(command=log_box.yview)
+
+        setattr(self, window_attr, window)
+        setattr(self, box_attr, log_box)
+        self._copy_current_log_to(log_box)
+        window.protocol("WM_DELETE_WINDOW", on_close)
 
     def open_log_link(self, link):
         try:
