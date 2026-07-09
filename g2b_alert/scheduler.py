@@ -8,11 +8,13 @@ from .keyword_matcher import match_keywords
 
 
 class BidScheduler:
-    def __init__(self, config, keywords, on_log, on_status, notifier, logger):
+    def __init__(self, config, keywords, on_log, on_status, on_alert, on_check_complete, notifier, logger):
         self.config = config
         self.keywords = keywords
         self.on_log = on_log
         self.on_status = on_status
+        self.on_alert = on_alert
+        self.on_check_complete = on_check_complete
         self.notifier = notifier
         self.logger = logger
         self.running = False
@@ -39,8 +41,8 @@ class BidScheduler:
                 self.check_once()
             except Exception as error:
                 self.logger.exception("Unhandled error while checking bids.")
-                self.on_log(f"\uc624\ub958 \ubc1c\uc0dd: {error}")
-                self.on_status("\uc624\ub958 \ubc1c\uc0dd")
+                self.on_log(f"오류 발생: {error}")
+                self.on_status("오류 발생")
 
             for _ in range(int(self.config.interval) * 60):
                 if not self.running:
@@ -49,15 +51,15 @@ class BidScheduler:
 
     def check_once(self):
         if not self.check_lock.acquire(blocking=False):
-            self.on_log("\uc774\uc804 \uc870\ud68c\uac00 \uc544\uc9c1 \ub05d\ub098\uc9c0 \uc54a\uc544 \uc774\ubc88 \uc870\ud68c\ub294 \uac74\ub108\ub701\ub2c8\ub2e4.")
+            self.on_log("이전 조회가 아직 끝나지 않아 이번 조회는 건너뜁니다.")
             return
 
         try:
             self.check_cycle_count += 1
             self.on_log("")
             self.on_log("-" * 70)
-            self.on_log(f"\uc870\ud68c {self.check_cycle_count}\ud68c\ucc28 \uc2dc\uc791")
-            self.on_status("\uacf5\uace0 \uc870\ud68c \uc911")
+            self.on_log(f"조회 {self.check_cycle_count}회차 시작")
+            self.on_status("공고 조회 중")
 
             seen = set(load_json(SEEN_FILE, []))
             state = load_json(STATE_FILE, {})
@@ -65,9 +67,9 @@ class BidScheduler:
             begin_time = self._get_begin_time(state, current_check_time)
 
             self.on_log(
-                "\uacf5\uace0 \uc870\ud68c: "
-                f"{begin_time.strftime('%Y-%m-%d %H:%M')}\ubd80\ud130 "
-                f"{current_check_time.strftime('%Y-%m-%d %H:%M')}\uae4c\uc9c0"
+                "공고 조회: "
+                f"{begin_time.strftime('%Y-%m-%d %H:%M')}부터 "
+                f"{current_check_time.strftime('%Y-%m-%d %H:%M')}까지"
             )
 
             client = G2BClient(
@@ -86,12 +88,12 @@ class BidScheduler:
                 except Exception as error:
                     all_success = False
                     self.logger.exception("%s fetch failed.", category_label)
-                    self.on_log(f"{category_label} \uc870\ud68c \uc2e4\ud328: {error}")
+                    self.on_log(f"{category_label} 조회 실패: {error}")
                     continue
 
                 for bid in bids:
                     if not bid.bid_no:
-                        self.on_log(f"{category_label} \uacf5\uace0\ubc88\ud638 \uc5c6\uc74c: {bid.title}")
+                        self.on_log(f"{category_label} 공고번호 없음: {bid.title}")
                         continue
                     if bid.unique_id in seen:
                         continue
@@ -109,14 +111,15 @@ class BidScheduler:
             if all_success:
                 save_json(STATE_FILE, {"last_check_time": current_check_time.isoformat()})
                 self.on_log(
-                    "\ub9c8\uc9c0\ub9c9 \ud655\uc778 \uc2dc\uac01 \uc800\uc7a5: "
+                    "마지막 확인 시각 저장: "
                     f"{current_check_time.strftime('%Y-%m-%d %H:%M:%S')}"
                 )
             else:
-                self.on_log("\uc77c\ubd80 \uc870\ud68c \uc2e4\ud328\ub85c \ub9c8\uc9c0\ub9c9 \ud655\uc778 \uc2dc\uac01\uc740 \uac31\uc2e0\ud558\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4.")
+                self.on_log("일부 조회 실패로 마지막 확인 시각은 갱신하지 않았습니다.")
 
-            self.on_log(f"\ud655\uc778 \uc644\ub8cc: \uc0c8 \uc54c\ub9bc {new_alert_count}\uac74")
-            self.on_status(f"\ucd5c\uadfc \ud655\uc778 \uc644\ub8cc / \uc0c8 \uc54c\ub9bc {new_alert_count}\uac74")
+            self.on_log(f"확인 완료: 새 알림 {new_alert_count}건")
+            self.on_status(f"최근 확인 완료 / 새 알림 {new_alert_count}건")
+            self.on_check_complete(current_check_time, new_alert_count, all_success)
         finally:
             self.check_lock.release()
 
@@ -129,7 +132,7 @@ class BidScheduler:
                 last_check_time = datetime.fromisoformat(last_check_str)
             except Exception:
                 self.logger.warning("Could not read last_check_time from state file.")
-                self.on_log("\ub9c8\uc9c0\ub9c9 \ud655\uc778 \uc2dc\uac01\uc744 \uc77d\uc9c0 \ubabb\ud574 \ucd5c\uadfc \uae30\uc900\uc73c\ub85c \uc870\ud68c\ud569\ub2c8\ub2e4.")
+                self.on_log("마지막 확인 시각을 읽지 못해 최근 기준으로 조회합니다.")
 
         if last_check_time:
             return last_check_time - timedelta(minutes=int(self.config.overlap_minutes))
@@ -139,15 +142,19 @@ class BidScheduler:
         matched_keyword_text = ", ".join(matched_keywords)
         message = (
             f"[{bid.category_label}] {bid.title}\n"
-            f"\uae30\uad00: {bid.agency}\n"
-            f"\uc218\uc694\uae30\uad00: {bid.demand_agency}\n"
-            f"\uacf5\uace0\ubc88\ud638: {bid.bid_no}\n"
-            f"\ucc28\uc218: {bid.bid_ord or '000'}\n"
-            f"\ub9e4\uce6d \ud0a4\uc6cc\ub4dc: {matched_keyword_text}"
+            f"기관: {bid.agency}\n"
+            f"수요기관: {bid.demand_agency}\n"
+            f"공고번호: {bid.bid_no}\n"
+            f"차수: {bid.bid_ord or '000'}\n"
+            f"매칭 키워드: {matched_keyword_text}"
         )
-        self.notifier.send("\ub098\ub77c\uc7a5\ud130 \uc0c8 \uacf5\uace0", message)
-        self.on_log(f"\uc54c\ub9bc: [{bid.category_label}] {bid.title}")
-        self.on_log(f"\uacf5\uace0\ubc88\ud638: {bid.bid_no} / \ucc28\uc218: {bid.bid_ord or '000'}")
-        self.on_log(f"\ub9e4\uce6d \ud0a4\uc6cc\ub4dc: {matched_keyword_text}")
+        if self.config.windows_notifications_enabled:
+            self.notifier.send("나라장터 새 공고", message)
+        else:
+            self.on_log("윈도우 알림 OFF: 화면 배지로만 표시합니다.")
+        self.on_alert(bid, matched_keywords)
+        self.on_log(f"알림: [{bid.category_label}] {bid.title}")
+        self.on_log(f"공고번호: {bid.bid_no} / 차수: {bid.bid_ord or '000'}")
+        self.on_log(f"매칭 키워드: {matched_keyword_text}")
         if bid.link:
-            self.on_log(f"\ub9c1\ud06c: {bid.link}")
+            self.on_log(f"링크: {bid.link}")

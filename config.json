@@ -1,13 +1,14 @@
 {
   "api_key": "7907b103adcb63ac82c6fd1fd13e1553e17a55e268b887afa13cdb884c14aa7c",
-  "keywords": "긴급",
-  "interval": "5",
+  "keywords": "2026",
+  "interval": "3",
   "selected_categories": [
     "service",
     "goods",
     "works",
     "etc"
   ],
+  "windows_notifications_enabled": true,
   "bootstrap_minutes": 30,
   "overlap_minutes": 10,
   "request_timeout_seconds": 30,

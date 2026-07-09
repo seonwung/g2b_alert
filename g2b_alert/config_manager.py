@@ -22,6 +22,7 @@ class AppConfig:
     keywords: str = DEFAULT_KEYWORDS
     interval: str = "5"
     selected_categories: list[str] = field(default_factory=lambda: DEFAULT_CATEGORIES.copy())
+    windows_notifications_enabled: bool = True
     bootstrap_minutes: int = 30
     overlap_minutes: int = 10
     request_timeout_seconds: int = 30

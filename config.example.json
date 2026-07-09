@@ -8,6 +8,7 @@
     "works",
     "etc"
   ],
+  "windows_notifications_enabled": true,
   "bootstrap_minutes": 30,
   "overlap_minutes": 10,
   "request_timeout_seconds": 30,

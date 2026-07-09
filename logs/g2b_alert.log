@@ -1,90 +1,279 @@
-2026-07-08 14:52:04 [INFO] g2b_alert - 프로그램 준비 완료
-2026-07-08 14:52:04 [INFO] g2b_alert - Program started.
-2026-07-08 14:52:09 [INFO] g2b_alert - 감시 시작
-2026-07-08 14:52:09 [INFO] g2b_alert - 키워드: fids
-2026-07-08 14:52:09 [INFO] g2b_alert - 확인 주기: 5분
-2026-07-08 14:52:09 [INFO] g2b_alert - 예상 API 호출량: 하루 약 1,152회
-2026-07-08 14:52:09 [INFO] g2b_alert - 조회 종류: 용역, 물품, 공사, 기타
-2026-07-08 14:52:09 [INFO] g2b_alert - ----------------------------------------------------------------------
-2026-07-08 14:52:09 [INFO] g2b_alert - 조회 1회차 시작
-2026-07-08 14:52:09 [INFO] g2b_alert - 공고 조회: 2026-07-08 14:03부터 2026-07-08 14:52까지
-2026-07-08 14:52:25 [INFO] g2b_alert - 마지막 확인 시각 저장: 2026-07-08 14:52:09
-2026-07-08 14:52:25 [INFO] g2b_alert - 확인 완료: 새 알림 0건
-2026-07-08 14:53:56 [INFO] g2b_alert - 감시 중지
-2026-07-08 15:00:52 [INFO] g2b_alert - 감시 시작
-2026-07-08 15:00:52 [INFO] g2b_alert - 키워드: 긴급
-2026-07-08 15:00:52 [INFO] g2b_alert - 확인 주기: 5분
-2026-07-08 15:00:52 [INFO] g2b_alert - 예상 API 호출량: 하루 약 1,152회
-2026-07-08 15:00:52 [INFO] g2b_alert - 조회 종류: 용역, 물품, 공사, 기타
-2026-07-08 15:00:52 [INFO] g2b_alert - ----------------------------------------------------------------------
-2026-07-08 15:00:52 [INFO] g2b_alert - 조회 1회차 시작
-2026-07-08 15:00:52 [INFO] g2b_alert - 공고 조회: 2026-07-08 14:42부터 2026-07-08 15:00까지
-2026-07-08 15:00:55 [INFO] g2b_alert - 알림: [용역] [긴급] 2026 대중문화예술 매니지먼트 역량강화 프로그램 운영 위탁용역
-2026-07-08 15:00:55 [INFO] g2b_alert - 공고번호: R26BK01623213 / 차수: 000
-2026-07-08 15:00:55 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 15:00:55 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01623213&bidPbancOrd=000
-2026-07-08 15:01:00 [INFO] g2b_alert - 알림: [공사] [긴급]천곡중 교육환경개선공사
-2026-07-08 15:01:00 [INFO] g2b_alert - 공고번호: R26BK01621735 / 차수: 000
-2026-07-08 15:01:00 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 15:01:00 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01621735&bidPbancOrd=000
-2026-07-08 15:01:01 [INFO] g2b_alert - 마지막 확인 시각 저장: 2026-07-08 15:00:52
-2026-07-08 15:01:01 [INFO] g2b_alert - 확인 완료: 새 알림 2건
-2026-07-08 15:06:01 [INFO] g2b_alert - ----------------------------------------------------------------------
-2026-07-08 15:06:01 [INFO] g2b_alert - 조회 2회차 시작
-2026-07-08 15:06:01 [INFO] g2b_alert - 공고 조회: 2026-07-08 14:50부터 2026-07-08 15:06까지
-2026-07-08 15:06:14 [INFO] g2b_alert - 마지막 확인 시각 저장: 2026-07-08 15:06:01
-2026-07-08 15:06:14 [INFO] g2b_alert - 확인 완료: 새 알림 0건
-2026-07-08 15:14:24 [INFO] g2b_alert - 프로그램 준비 완료
-2026-07-08 15:14:24 [INFO] g2b_alert - Program started.
-2026-07-08 16:49:24 [INFO] g2b_alert - 프로그램 준비 완료
-2026-07-08 16:49:24 [INFO] g2b_alert - Program started.
-2026-07-08 16:49:50 [INFO] g2b_alert - 프로그램 준비 완료
-2026-07-08 16:49:50 [INFO] g2b_alert - Program started.
-2026-07-08 16:55:22 [INFO] g2b_alert - 프로그램 준비 완료
-2026-07-08 16:55:22 [INFO] g2b_alert - Program started.
-2026-07-08 16:57:50 [INFO] g2b_alert - 프로그램 준비 완료
-2026-07-08 16:57:50 [INFO] g2b_alert - Program started.
-2026-07-08 16:58:03 [INFO] g2b_alert - 감시 시작
-2026-07-08 16:58:03 [INFO] g2b_alert - 키워드: 긴급
-2026-07-08 16:58:03 [INFO] g2b_alert - 확인 주기: 5분
-2026-07-08 16:58:03 [INFO] g2b_alert - 예상 API 호출량: 하루 약 1,152회
-2026-07-08 16:58:03 [INFO] g2b_alert - 조회 종류: 용역, 물품, 공사, 기타
-2026-07-08 16:58:03 [INFO] g2b_alert - ----------------------------------------------------------------------
-2026-07-08 16:58:03 [INFO] g2b_alert - 조회 1회차 시작
-2026-07-08 16:58:03 [INFO] g2b_alert - 공고 조회: 2026-07-08 14:56부터 2026-07-08 16:58까지
-2026-07-08 16:58:07 [INFO] g2b_alert - 알림: [용역] 회계 세무 자문 및 지원 용역(2026~2028회계연도 귀속)[긴급]
-2026-07-08 16:58:07 [INFO] g2b_alert - 공고번호: R26BK01621261 / 차수: 000
-2026-07-08 16:58:07 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 16:58:07 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01621261&bidPbancOrd=000
-2026-07-08 16:58:07 [INFO] g2b_alert - 알림: [용역] 2026년 양식어장 정화사업(긴급)
-2026-07-08 16:58:07 [INFO] g2b_alert - 공고번호: R26BK01623625 / 차수: 000
-2026-07-08 16:58:07 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 16:58:07 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01623625&bidPbancOrd=000
-2026-07-08 16:58:09 [INFO] g2b_alert - 알림: [물품] 농업회사법인(주)참 사과선별기 제작·설치(입찰대행)(협상에의한계약)(긴급)
-2026-07-08 16:58:09 [INFO] g2b_alert - 공고번호: R26BK01623410 / 차수: 000
-2026-07-08 16:58:09 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 16:58:09 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01623410&bidPbancOrd=000
-2026-07-08 16:58:09 [INFO] g2b_alert - 알림: [물품] [긴급] 정동고등학교 교육환경개선사업 냉난방기 구매 설치
-2026-07-08 16:58:09 [INFO] g2b_alert - 공고번호: R26BK01619593 / 차수: 000
-2026-07-08 16:58:09 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 16:58:09 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01619593&bidPbancOrd=000
-2026-07-08 16:58:10 [INFO] g2b_alert - 알림: [공사] [긴급]성안중 외벽개선 및 옥상방수공사
-2026-07-08 16:58:10 [INFO] g2b_alert - 공고번호: R26BK01623392 / 차수: 000
-2026-07-08 16:58:10 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 16:58:10 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01623392&bidPbancOrd=000
-2026-07-08 16:58:10 [INFO] g2b_alert - 알림: [공사] (한해대비) 죽산양수장 수중모터펌프 긴급 교체공사
-2026-07-08 16:58:10 [INFO] g2b_alert - 공고번호: R26BK01622479 / 차수: 000
-2026-07-08 16:58:10 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 16:58:10 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01622479&bidPbancOrd=000
-2026-07-08 16:58:10 [INFO] g2b_alert - 알림: [공사] [긴급] (가칭)영종학교 신축 전기공사(계속비)
-2026-07-08 16:58:10 [INFO] g2b_alert - 공고번호: R26BK01622301 / 차수: 000
-2026-07-08 16:58:10 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 16:58:10 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01622301&bidPbancOrd=000
-2026-07-08 16:58:10 [INFO] g2b_alert - 알림: [공사] 2026년도 바로처리 긴급 생활불편 민원처리 단가계약(1권역 2차)
-2026-07-08 16:58:10 [INFO] g2b_alert - 공고번호: R26BK01620633 / 차수: 000
-2026-07-08 16:58:10 [INFO] g2b_alert - 매칭 키워드: 긴급
-2026-07-08 16:58:10 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01620633&bidPbancOrd=000
-2026-07-08 16:58:11 [INFO] g2b_alert - 마지막 확인 시각 저장: 2026-07-08 16:58:03
-2026-07-08 16:58:11 [INFO] g2b_alert - 확인 완료: 새 알림 8건
-2026-07-08 16:59:46 [INFO] g2b_alert - 프로그램 준비 완료
-2026-07-08 16:59:46 [INFO] g2b_alert - Program started.
+2026-07-09 14:53:15 [INFO] g2b_alert - 프로그램 준비 완료
+2026-07-09 14:53:15 [INFO] g2b_alert - Program started.
+2026-07-09 14:53:42 [INFO] g2b_alert - 감시 시작
+2026-07-09 14:53:42 [INFO] g2b_alert - 키워드: 2026
+2026-07-09 14:53:42 [INFO] g2b_alert - 확인 주기: 3분
+2026-07-09 14:53:42 [INFO] g2b_alert - 예상 API 호출량: 하루 약 1,920회
+2026-07-09 14:53:42 [INFO] g2b_alert - 윈도우 알림: OFF
+2026-07-09 14:53:42 [INFO] g2b_alert - 조회 종류: 용역, 물품, 공사, 기타
+2026-07-09 14:53:42 [INFO] g2b_alert - ----------------------------------------------------------------------
+2026-07-09 14:53:42 [INFO] g2b_alert - 조회 1회차 시작
+2026-07-09 14:53:42 [INFO] g2b_alert - 공고 조회: 2026-07-09 14:23부터 2026-07-09 14:53까지
+2026-07-09 14:53:44 [INFO] g2b_alert - 즉시 조회 시작
+2026-07-09 14:53:44 [INFO] g2b_alert - 이전 조회가 아직 끝나지 않아 이번 조회는 건너뜁니다.
+2026-07-09 14:53:46 [INFO] g2b_alert - 즉시 조회 시작
+2026-07-09 14:53:46 [INFO] g2b_alert - 이전 조회가 아직 끝나지 않아 이번 조회는 건너뜁니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026. 청소년 해외봉사 프로젝트 위탁용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01624554 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01624554&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026년 서귀포시 서부지역 농업용수 노후관로 정비공사 건설폐기물처리용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625459 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625459&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026년 서귀포시 동부지역 농업용수 노후관로 정비공사 건설폐기물처리용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625493 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625493&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026년 해저면 지진계 유지보수 용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625484 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625484&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026 부산 국제 트래블마트 운영 용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625384 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625384&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026년 적성검사(갱신) 우편안내통지서 제작 및 발송 용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625424 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625424&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026학년도 경기대학교 가을 대동제(축제)행사 대행업체 선정
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625475 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625475&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026년 작업환경 측정 용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625290 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625290&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026년 제주시 동부지역 농업용수 노후관로 정비공사 건설폐기물처리용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625510 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625510&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026년 강남지사 고객 기계실 유지관리 용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625351 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625351&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026년 고양사업소 고객 기계실 유지관리 용역
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625421 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625421&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [용역] 2026년 창의공방 사진 촬영 영약
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625463 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625463&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [물품] 2026년 양파 씨앗파종 및 관리 생력화 기금사업 양파파종기 등 농기계 구입(입찰대행)
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625461 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625461&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [물품] 2026년 수산종자 매입방류사업 치어(붕어) 구입(단가계약)
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625444 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625444&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [물품] 소액수의 견적제출 공고[2026년 수산식품 가공설비 지원사업(멸치선별기) 입찰 공고(입찰대행)]
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01625494 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625494&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [물품] 2026년 여권업무용 전산장비(여권사진촬영기) 구매
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01624098 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01624098&bidPbancOrd=000
+2026-07-09 14:53:50 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:50 [INFO] g2b_alert - 알림: [물품] 2026년 자동차배출가스 종합전산시스템 전산장비 구매
+2026-07-09 14:53:50 [INFO] g2b_alert - 공고번호: R26BK01622555 / 차수: 000
+2026-07-09 14:53:50 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:50 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01622555&bidPbancOrd=000
+2026-07-09 14:53:54 [INFO] g2b_alert - 즉시 조회 시작
+2026-07-09 14:53:54 [INFO] g2b_alert - 이전 조회가 아직 끝나지 않아 이번 조회는 건너뜁니다.
+2026-07-09 14:53:58 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:58 [INFO] g2b_alert - 알림: [공사] 2026년 1~4호선 전기실 타이차단기반 전자석 잠금장치 설치 전기공사
+2026-07-09 14:53:58 [INFO] g2b_alert - 공고번호: R26BK01625412 / 차수: 000
+2026-07-09 14:53:58 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:58 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625412&bidPbancOrd=000
+2026-07-09 14:53:58 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:58 [INFO] g2b_alert - 알림: [공사] 2026 하천정비 민원해소사업(만천천, 후평동 120-3번지 일원)
+2026-07-09 14:53:58 [INFO] g2b_alert - 공고번호: R26BK01625379 / 차수: 000
+2026-07-09 14:53:58 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:58 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625379&bidPbancOrd=000
+2026-07-09 14:53:58 [INFO] g2b_alert - 윈도우 알림 OFF: 화면 배지로만 표시합니다.
+2026-07-09 14:53:58 [INFO] g2b_alert - 알림: [공사] 2026년 등산로 정비사업(백마산)
+2026-07-09 14:53:58 [INFO] g2b_alert - 공고번호: R26BK01625524 / 차수: 000
+2026-07-09 14:53:58 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:58 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625524&bidPbancOrd=000
+2026-07-09 14:53:59 [INFO] g2b_alert - 윈도우 알림: ON
+2026-07-09 14:53:59 [INFO] g2b_alert - 알림: [기타] 동국대학교 2026년 BMC 대동제 행사대행 용역 (긴급)
+2026-07-09 14:53:59 [INFO] g2b_alert - 공고번호: R26BK01625468 / 차수: 000
+2026-07-09 14:53:59 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:53:59 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625468&bidPbancOrd=000&prcmBsneSeCd=09&pbancType=pbanc
+2026-07-09 14:53:59 [INFO] g2b_alert - 마지막 확인 시각 저장: 2026-07-09 14:53:42
+2026-07-09 14:53:59 [INFO] g2b_alert - 확인 완료: 새 알림 21건
+2026-07-09 14:54:03 [INFO] g2b_alert - 알림 테스트 실행
+2026-07-09 14:54:04 [INFO] g2b_alert - 알림 테스트 실행
+2026-07-09 14:54:04 [INFO] g2b_alert - 알림 테스트 실행
+2026-07-09 14:54:11 [INFO] g2b_alert - 즉시 조회 시작
+2026-07-09 14:54:11 [INFO] g2b_alert - ----------------------------------------------------------------------
+2026-07-09 14:54:11 [INFO] g2b_alert - 조회 2회차 시작
+2026-07-09 14:54:11 [INFO] g2b_alert - 공고 조회: 2026-07-09 14:43부터 2026-07-09 14:54까지
+2026-07-09 14:54:20 [INFO] g2b_alert - 마지막 확인 시각 저장: 2026-07-09 14:54:11
+2026-07-09 14:54:20 [INFO] g2b_alert - 확인 완료: 새 알림 0건
+2026-07-09 14:54:28 [INFO] g2b_alert - 감시 중지
+2026-07-09 14:54:30 [INFO] g2b_alert - 확인 기록 초기화 완료
+2026-07-09 14:54:34 [INFO] g2b_alert - 감시 시작
+2026-07-09 14:54:34 [INFO] g2b_alert - 키워드: 2026
+2026-07-09 14:54:34 [INFO] g2b_alert - 확인 주기: 3분
+2026-07-09 14:54:34 [INFO] g2b_alert - 예상 API 호출량: 하루 약 1,920회
+2026-07-09 14:54:34 [INFO] g2b_alert - 윈도우 알림: ON
+2026-07-09 14:54:34 [INFO] g2b_alert - 조회 종류: 용역, 물품, 공사, 기타
+2026-07-09 14:54:34 [INFO] g2b_alert - ----------------------------------------------------------------------
+2026-07-09 14:54:34 [INFO] g2b_alert - 조회 1회차 시작
+2026-07-09 14:54:34 [INFO] g2b_alert - 공고 조회: 2026-07-09 14:24부터 2026-07-09 14:54까지
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 전통시장 골목상권 공동브랜드 개발 지원사업 수행기관 입찰공고(B과제_익산영등상권)
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01604670 / 차수: 001
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01604670&bidPbancOrd=001
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 합법목재 교역촉진제도 수입신고 통계 분석
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01623285 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01623285&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 구급 사이버교육 콘텐츠 개발
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01624249 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01624249&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026 성서초등학교 창의융합의달 행사비 견적요청
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01625429 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625429&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 국가단위 긴급구조종합훈련 지원용역
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01624095 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01624095&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026. 청소년 해외봉사 프로젝트 위탁용역
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01624554 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01624554&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 서귀포시 서부지역 농업용수 노후관로 정비공사 건설폐기물처리용역
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01625459 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625459&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 서귀포시 동부지역 농업용수 노후관로 정비공사 건설폐기물처리용역
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01625493 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625493&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 해저면 지진계 유지보수 용역
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01625484 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625484&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026 부산 국제 트래블마트 운영 용역
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01625384 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625384&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 적성검사(갱신) 우편안내통지서 제작 및 발송 용역
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01625424 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625424&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026학년도 경기대학교 가을 대동제(축제)행사 대행업체 선정
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01625475 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625475&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 작업환경 측정 용역
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01625290 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625290&bidPbancOrd=000
+2026-07-09 14:54:38 [INFO] g2b_alert - 알림: [용역] 2026년 제주시 동부지역 농업용수 노후관로 정비공사 건설폐기물처리용역
+2026-07-09 14:54:38 [INFO] g2b_alert - 공고번호: R26BK01625510 / 차수: 000
+2026-07-09 14:54:38 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:38 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625510&bidPbancOrd=000
+2026-07-09 14:54:39 [INFO] g2b_alert - 알림: [용역] 2026년 강남지사 고객 기계실 유지관리 용역
+2026-07-09 14:54:39 [INFO] g2b_alert - 공고번호: R26BK01625351 / 차수: 000
+2026-07-09 14:54:39 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:39 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625351&bidPbancOrd=000
+2026-07-09 14:54:39 [INFO] g2b_alert - 알림: [용역] 2026년 고양사업소 고객 기계실 유지관리 용역
+2026-07-09 14:54:39 [INFO] g2b_alert - 공고번호: R26BK01625421 / 차수: 000
+2026-07-09 14:54:39 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:39 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625421&bidPbancOrd=000
+2026-07-09 14:54:39 [INFO] g2b_alert - 알림: [용역] 2026년 창의공방 사진 촬영 영약
+2026-07-09 14:54:39 [INFO] g2b_alert - 공고번호: R26BK01625463 / 차수: 000
+2026-07-09 14:54:39 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:39 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625463&bidPbancOrd=000
+2026-07-09 14:54:39 [INFO] g2b_alert - 알림: [용역] [취소공고]2026년 보성군 연안어장 재배치 용역
+2026-07-09 14:54:39 [INFO] g2b_alert - 공고번호: R26BK01622971 / 차수: 001
+2026-07-09 14:54:39 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:39 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01622971&bidPbancOrd=001
+2026-07-09 14:54:39 [INFO] g2b_alert - 알림: [용역] 2026년 삼척항 북방파제 정밀안전진단 용역
+2026-07-09 14:54:39 [INFO] g2b_alert - 공고번호: R26BK01624770 / 차수: 000
+2026-07-09 14:54:39 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:39 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01624770&bidPbancOrd=000
+2026-07-09 14:54:39 [INFO] g2b_alert - 알림: [물품] (재공고) 금융결제원 2026년 사무자동화 및 업무용 S/W 도입
+2026-07-09 14:54:39 [INFO] g2b_alert - 공고번호: R26BK01625428 / 차수: 000
+2026-07-09 14:54:39 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:39 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625428&bidPbancOrd=000
+2026-07-09 14:54:39 [INFO] g2b_alert - 알림: [물품] 2026년 양파 씨앗파종 및 관리 생력화 기금사업 양파파종기 등 농기계 구입(입찰대행)
+2026-07-09 14:54:39 [INFO] g2b_alert - 공고번호: R26BK01625461 / 차수: 000
+2026-07-09 14:54:39 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:39 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625461&bidPbancOrd=000
+2026-07-09 14:54:39 [INFO] g2b_alert - 알림: [물품] 2026년 수산종자 매입방류사업 치어(붕어) 구입(단가계약)
+2026-07-09 14:54:39 [INFO] g2b_alert - 공고번호: R26BK01625444 / 차수: 000
+2026-07-09 14:54:39 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:40 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625444&bidPbancOrd=000
+2026-07-09 14:54:40 [INFO] g2b_alert - 알림: [물품] 소액수의 견적제출 공고[2026년 수산식품 가공설비 지원사업(멸치선별기) 입찰 공고(입찰대행)]
+2026-07-09 14:54:40 [INFO] g2b_alert - 공고번호: R26BK01625494 / 차수: 000
+2026-07-09 14:54:40 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:40 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625494&bidPbancOrd=000
+2026-07-09 14:54:40 [INFO] g2b_alert - 알림: [물품] 2026년 여권업무용 전산장비(여권사진촬영기) 구매
+2026-07-09 14:54:40 [INFO] g2b_alert - 공고번호: R26BK01624098 / 차수: 000
+2026-07-09 14:54:40 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:40 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01624098&bidPbancOrd=000
+2026-07-09 14:54:40 [INFO] g2b_alert - 알림: [물품] 2026년 자동차배출가스 종합전산시스템 전산장비 구매
+2026-07-09 14:54:40 [INFO] g2b_alert - 공고번호: R26BK01622555 / 차수: 000
+2026-07-09 14:54:40 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:40 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01622555&bidPbancOrd=000
+2026-07-09 14:54:41 [INFO] g2b_alert - 알림: [공사] 2026년 신규조림지 풀베기사업(2지구)
+2026-07-09 14:54:41 [INFO] g2b_alert - 공고번호: R26BK01625396 / 차수: 000
+2026-07-09 14:54:41 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:41 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625396&bidPbancOrd=000
+2026-07-09 14:54:41 [INFO] g2b_alert - 알림: [공사] 2026년 하반기 청원구 띠녹지 관리사업
+2026-07-09 14:54:41 [INFO] g2b_alert - 공고번호: R26BK01625434 / 차수: 000
+2026-07-09 14:54:41 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:41 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625434&bidPbancOrd=000
+2026-07-09 14:54:41 [INFO] g2b_alert - 알림: [공사] 2026년 하반기 청원구 녹지관리사업(밀레니엄타운)
+2026-07-09 14:54:41 [INFO] g2b_alert - 공고번호: R26BK01625456 / 차수: 000
+2026-07-09 14:54:41 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:41 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625456&bidPbancOrd=000
+2026-07-09 14:54:41 [INFO] g2b_alert - 알림: [공사] 2026년 장안구 도시공원 배수로 정비공사
+2026-07-09 14:54:41 [INFO] g2b_alert - 공고번호: R26BK01619250 / 차수: 000
+2026-07-09 14:54:41 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:41 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01619250&bidPbancOrd=000
+2026-07-09 14:54:41 [INFO] g2b_alert - 알림: [공사] 2026년 1~4호선 전기실 타이차단기반 전자석 잠금장치 설치 전기공사
+2026-07-09 14:54:41 [INFO] g2b_alert - 공고번호: R26BK01625412 / 차수: 000
+2026-07-09 14:54:41 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:41 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625412&bidPbancOrd=000
+2026-07-09 14:54:41 [INFO] g2b_alert - 알림: [공사] 2026 하천정비 민원해소사업(만천천, 후평동 120-3번지 일원)
+2026-07-09 14:54:41 [INFO] g2b_alert - 공고번호: R26BK01625379 / 차수: 000
+2026-07-09 14:54:41 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:41 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625379&bidPbancOrd=000
+2026-07-09 14:54:41 [INFO] g2b_alert - 알림: [공사] 2026년 등산로 정비사업(백마산)
+2026-07-09 14:54:41 [INFO] g2b_alert - 공고번호: R26BK01625524 / 차수: 000
+2026-07-09 14:54:41 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:41 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625524&bidPbancOrd=000
+2026-07-09 14:54:44 [INFO] g2b_alert - 알림: [기타] 동국대학교 2026년 BMC 대동제 행사대행 용역 (긴급)
+2026-07-09 14:54:44 [INFO] g2b_alert - 공고번호: R26BK01625468 / 차수: 000
+2026-07-09 14:54:44 [INFO] g2b_alert - 매칭 키워드: 2026
+2026-07-09 14:54:44 [INFO] g2b_alert - 링크: https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01625468&bidPbancOrd=000&prcmBsneSeCd=09&pbancType=pbanc
+2026-07-09 14:54:44 [INFO] g2b_alert - 마지막 확인 시각 저장: 2026-07-09 14:54:34
+2026-07-09 14:54:44 [INFO] g2b_alert - 확인 완료: 새 알림 33건
+2026-07-09 14:54:52 [INFO] g2b_alert - 감시 중지

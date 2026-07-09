@@ -6,7 +6,7 @@ except ImportError:
 
 
 class WindowsNotifier:
-    def __init__(self, app_id="\ub098\ub77c\uc7a5\ud130 \uacf5\uace0 \uc54c\ub9bc", logger=None):
+    def __init__(self, app_id="나라장터 공고 알림", logger=None):
         self.app_id = app_id
         self.logger = logger
 

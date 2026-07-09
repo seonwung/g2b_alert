@@ -7,10 +7,10 @@ import requests
 BASE_URL = "https://apis.data.go.kr/1230000/ad/BidPublicInfoService"
 
 CATEGORY_LABELS = {
-    "service": "\uc6a9\uc5ed",
-    "goods": "\ubb3c\ud488",
-    "works": "\uacf5\uc0ac",
-    "etc": "\uae30\ud0c0",
+    "service": "용역",
+    "goods": "물품",
+    "works": "공사",
+    "etc": "기타",
 }
 
 ENDPOINTS = {
