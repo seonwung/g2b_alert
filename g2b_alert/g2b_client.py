@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 import requests
@@ -30,6 +30,13 @@ class BidItem:
     agency: str
     demand_agency: str
     link: str
+    bid_method: str = ""
+    contract_method: str = ""
+    budget_amount: str = ""
+    bid_start_datetime: str = ""
+    bid_end_datetime: str = ""
+    opening_datetime: str = ""
+    raw: dict = field(default_factory=dict)
 
     @property
     def category_label(self):
@@ -75,6 +82,33 @@ class G2BClient:
         response.raise_for_status()
         return [self._to_bid_item(category, item) for item in parse_items(response.json())]
 
+    def fetch_bid_by_no(self, bid_no, bid_ord=""):
+        bid_no = (bid_no or "").strip()
+        bid_ord = (bid_ord or "").strip()
+        if not bid_no:
+            return None
+
+        for category in ENDPOINTS:
+            url = BASE_URL + ENDPOINTS[category]
+            params = {
+                "serviceKey": self.api_key,
+                "inqryDiv": "2",
+                "bidNtceNo": bid_no,
+                "pageNo": "1",
+                "numOfRows": str(self.num_of_rows),
+                "type": "json",
+            }
+            response = requests.get(url, params=params, timeout=self.timeout_seconds)
+            response.raise_for_status()
+            for item in parse_items(response.json()):
+                found = self._to_bid_item(category, item)
+                if found.bid_no != bid_no:
+                    continue
+                if bid_ord and found.bid_ord and found.bid_ord != bid_ord:
+                    continue
+                return found
+        return None
+
     def _to_bid_item(self, category, item):
         return BidItem(
             category=category,
@@ -84,4 +118,11 @@ class G2BClient:
             agency=item.get("ntceInsttNm", ""),
             demand_agency=item.get("dminsttNm", ""),
             link=item.get("bidNtceDtlUrl", ""),
+            bid_method=item.get("bidMethdNm", ""),
+            contract_method=item.get("cntrctCnclsMthdNm", ""),
+            budget_amount=item.get("presmptPrce", "") or item.get("asignBdgtAmt", ""),
+            bid_start_datetime=item.get("bidBeginDt", ""),
+            bid_end_datetime=item.get("bidClseDt", ""),
+            opening_datetime=item.get("opengDt", ""),
+            raw=item,
         )

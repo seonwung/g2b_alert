@@ -21,12 +21,24 @@ class AppConfig:
     api_key: str = ""
     keywords: str = DEFAULT_KEYWORDS
     interval: str = "5"
+    result_interval: str = "5"
     selected_categories: list[str] = field(default_factory=lambda: DEFAULT_CATEGORIES.copy())
     windows_notifications_enabled: bool = True
     bootstrap_minutes: int = 30
     overlap_minutes: int = 10
     request_timeout_seconds: int = 30
     num_of_rows: int = 100
+    result_monitoring_enabled: bool = False
+    notify_all_opening_results: bool = True
+    notify_each_opening_company: bool = False
+    company_name: str = ""
+    business_number: str = ""
+    representative_name: str = ""
+    keyword_email_enabled: bool = False
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_sender_name: str = "나라장터 알림"
 
 
 def load_json(path: Path, default):

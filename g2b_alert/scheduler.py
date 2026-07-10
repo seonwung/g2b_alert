@@ -8,7 +8,18 @@ from .keyword_matcher import match_keywords
 
 
 class BidScheduler:
-    def __init__(self, config, keywords, on_log, on_status, on_alert, on_check_complete, notifier, logger):
+    def __init__(
+        self,
+        config,
+        keywords,
+        on_log,
+        on_status,
+        on_alert,
+        on_check_complete,
+        notifier,
+        logger,
+        email_alert_service=None,
+    ):
         self.config = config
         self.keywords = keywords
         self.on_log = on_log
@@ -17,6 +28,7 @@ class BidScheduler:
         self.on_check_complete = on_check_complete
         self.notifier = notifier
         self.logger = logger
+        self.email_alert_service = email_alert_service
         self.running = False
         self.worker = None
         self.check_lock = threading.Lock()
@@ -153,6 +165,8 @@ class BidScheduler:
         else:
             self.on_log("윈도우 알림 OFF: 화면 배지로만 표시합니다.")
         self.on_alert(bid, matched_keywords)
+        if self.email_alert_service:
+            self.email_alert_service.queue_keyword_bid(bid, matched_keywords)
         self.on_log(f"알림: [{bid.category_label}] {bid.title}")
         self.on_log(f"공고번호: {bid.bid_no} / 차수: {bid.bid_ord or '000'}")
         self.on_log(f"매칭 키워드: {matched_keyword_text}")

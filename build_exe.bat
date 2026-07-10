@@ -6,6 +6,7 @@ python -m PyInstaller ^
   --noconfirm ^
   --onefile ^
   --windowed ^
+  --collect-all keyring ^
   --name g2b_alert ^
   main.py
 

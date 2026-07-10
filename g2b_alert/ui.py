@@ -8,9 +8,13 @@ from tkinter import messagebox, ttk
 
 from .app_logger import setup_logger
 from .config_manager import AppConfig, SEEN_FILE, STATE_FILE, load_config, save_config
-from .g2b_client import CATEGORY_LABELS, ENDPOINTS
+from .database import DB_FILE, G2BDatabase
+from .email_service import EmailAlertService
+from .email_ui import EmailSettingsWindow, SavedBidRecipientWindow
+from .g2b_client import CATEGORY_LABELS, ENDPOINTS, G2BClient
 from .keyword_matcher import parse_keywords
 from .notifier import WindowsNotifier
+from .result_service import ResultMonitorService, SavedResultScheduler
 from .scheduler import BidScheduler
 
 
@@ -42,8 +46,8 @@ class G2BAlertApp:
     def __init__(self, root):
         self.root = root
         self.root.title("나라장터 키워드 알림")
-        self.root.geometry("920x980")
-        self.root.minsize(860, 900)
+        self.root.geometry("920x940")
+        self.root.minsize(860, 840)
         self.root.resizable(True, True)
         self.root.configure(bg=APP_BG)
 
@@ -59,7 +63,14 @@ class G2BAlertApp:
         self.recent_alerts = {}
         self.recent_alert_seq = 0
         self.keyword_dropdown = None
+        self.keyword_window = None
         self.manual_check_running = False
+        self.result_check_running = False
+        self.saved_result_scheduler = None
+        self.database = G2BDatabase()
+        self.database.sync_keyword_setting(self.config.keywords, self.config.keyword_email_enabled)
+        self.email_alert_service = EmailAlertService(self.config, self.database, self.log, self.logger)
+        self.saved_bid_rows = {}
 
         self.label_style = {"bg": CARD_BG, "fg": TEXT, "font": FONT_BOLD}
         self.sub_label_style = {"bg": CARD_BG, "fg": SUB_TEXT, "font": ("맑은 고딕", 9)}
@@ -77,7 +88,10 @@ class G2BAlertApp:
 
         self._configure_tree_style()
         self._build_ui()
+        self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.update_running_ui(False)
+        self.email_alert_service.start()
+        self.root.after(500, self.start_saved_result_monitor_if_needed)
         self.log("프로그램 준비 완료")
         self.logger.info("Program started.")
 
@@ -100,7 +114,7 @@ class G2BAlertApp:
         )
 
     def _build_ui(self):
-        header = tk.Frame(self.root, bg=CARD_BG, height=78, highlightbackground=BORDER, highlightthickness=1)
+        header = tk.Frame(self.root, bg=CARD_BG, height=68, highlightbackground=BORDER, highlightthickness=1)
         header.pack(fill="x")
         header.pack_propagate(False)
 
@@ -109,8 +123,8 @@ class G2BAlertApp:
             text="나라장터 키워드 알림",
             bg=CARD_BG,
             fg=TEXT,
-            font=("맑은 고딕", 18, "bold"),
-        ).pack(anchor="w", padx=22, pady=(13, 2))
+            font=("맑은 고딕", 17, "bold"),
+        ).pack(anchor="w", padx=22, pady=(9, 1))
 
         tk.Label(
             header,
@@ -120,13 +134,18 @@ class G2BAlertApp:
             font=("맑은 고딕", 9),
         ).pack(anchor="w", padx=24)
 
-        main = tk.Frame(self.root, bg=APP_BG)
-        main.pack(fill="both", expand=True)
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(fill="both", expand=True)
+        main = tk.Frame(notebook, bg=APP_BG)
+        saved_page = tk.Frame(notebook, bg=APP_BG)
+        notebook.add(main, text="키워드 감시")
+        notebook.add(saved_page, text="저장 공고")
         self._build_status(main)
         self._build_basic_settings(main)
         self._build_keyword_settings(main)
         self._build_action_buttons(main)
         self._build_recent_alerts(main)
+        self._build_saved_bids_page(saved_page)
         self._build_hidden_log()
 
     def _build_basic_settings(self, parent):
@@ -160,13 +179,13 @@ class G2BAlertApp:
         )
         self.api_key_toggle_btn.grid(row=0, column=1, padx=(8, 0))
 
-        tk.Label(basic_frame, text="확인 주기", **self.label_style).grid(row=2, column=0, sticky="w", pady=(2, 5))
+        tk.Label(basic_frame, text="키워드 감시 주기", **self.label_style).grid(row=2, column=0, sticky="w", pady=(2, 5))
         interval_frame = tk.Frame(basic_frame, bg=CARD_BG)
         interval_frame.grid(row=3, column=0, columnspan=4, sticky="w")
         self.interval_entry = tk.Entry(interval_frame, width=10, **self.entry_style)
         self.interval_entry.pack(side="left")
         self.interval_entry.insert(0, str(self.config.interval))
-        tk.Label(interval_frame, text="분마다 확인합니다. 5분 권장 / 최소 1분", **self.sub_label_style).pack(side="left", padx=(8, 0))
+        tk.Label(interval_frame, text="분마다 새 입찰공고를 확인합니다. 5분 권장 / 최소 1분", **self.sub_label_style).pack(side="left", padx=(8, 0))
 
         tk.Label(basic_frame, text="조회할 공고 종류", **self.label_style).grid(row=4, column=0, sticky="w", pady=(15, 5))
         self.category_vars = {}
@@ -221,7 +240,7 @@ class G2BAlertApp:
 
         self.keyword_text = tk.Text(
             keyword_frame,
-            height=3,
+            height=2,
             bg=INPUT_BG,
             fg=TEXT,
             relief="solid",
@@ -237,6 +256,25 @@ class G2BAlertApp:
         )
         self.keyword_text.pack(fill="x")
         self.keyword_text.insert("1.0", self.config.keywords)
+
+        email_frame = tk.Frame(keyword_frame, bg=CARD_BG)
+        email_frame.pack(fill="x", pady=(8, 0))
+        self.keyword_email_var = tk.BooleanVar(value=bool(self.config.keyword_email_enabled))
+        self.keyword_email_check = tk.Checkbutton(
+            email_frame,
+            text="신규 공고 이메일 알림 사용",
+            variable=self.keyword_email_var,
+            command=self.toggle_keyword_email_notifications,
+            bg=CARD_BG,
+            fg=TEXT,
+            activebackground=CARD_BG,
+            activeforeground=PRIMARY,
+            selectcolor=CARD_BG,
+            font=FONT,
+            cursor="hand2",
+        )
+        self.keyword_email_check.pack(side="left")
+        self.make_small_button(email_frame, "SMTP·수신자 관리", self.open_email_settings, GRAY).pack(side="left", padx=(10, 0))
 
     def _build_action_buttons(self, parent):
         action_frame = tk.Frame(parent, bg=APP_BG)
@@ -258,7 +296,7 @@ class G2BAlertApp:
 
     def _build_status(self, parent):
         status_frame = tk.Frame(parent, bg=STATUS_BG, highlightbackground=BORDER, highlightthickness=1)
-        status_frame.pack(fill="x", padx=16, pady=(12, 4))
+        status_frame.pack(fill="x", padx=16, pady=(8, 4))
         self.status_var = tk.StringVar(value="상태: 대기 중")
         self.last_check_var = tk.StringVar(value="마지막 확인: -")
         self.next_check_var = tk.StringVar(value="다음 확인 예정: -")
@@ -347,15 +385,20 @@ class G2BAlertApp:
         ).pack(side="left")
         self.open_alert_link_btn = self.make_small_button(alert_toolbar, "선택한 공고 링크 열기", self.open_selected_alert_link, GRAY)
         self.open_alert_link_btn.pack(side="right", padx=(6, 0))
+        self.save_alert_bid_btn = self.make_small_button(alert_toolbar, "선택한 공고 저장", self.save_selected_alert_bid, SUCCESS)
+        self.save_alert_bid_btn.pack(side="right", padx=(6, 0))
         self.clear_alerts_btn = self.make_small_button(alert_toolbar, "목록 지우기", self.clear_recent_alerts, GRAY)
         self.clear_alerts_btn.pack(side="right")
 
+        alert_table_frame = tk.Frame(alert_frame, bg=CARD_BG)
+        alert_table_frame.pack(fill="x")
+
         columns = ("time", "category", "title", "keywords", "link")
-        self.alert_tree = ttk.Treeview(alert_frame, columns=columns, show="headings", height=5)
+        self.alert_tree = ttk.Treeview(alert_table_frame, columns=columns, show="headings", height=5)
         self.alert_tree.heading("time", text="시간")
         self.alert_tree.heading("category", text="종류")
         self.alert_tree.heading("title", text="공고명")
-        self.alert_tree.heading("keywords", text="매칭 키워드")
+        self.alert_tree.heading("keywords", text="키워드")
         self.alert_tree.heading("link", text="링크")
         self.alert_tree.column("time", width=70, anchor="center", stretch=False)
         self.alert_tree.column("category", width=70, anchor="center", stretch=False)
@@ -367,7 +410,7 @@ class G2BAlertApp:
         self.alert_tree.bind("<Double-1>", self.handle_alert_tree_double_click)
         self.alert_tree.bind("<Return>", lambda event: self.open_selected_alert_link())
 
-        alert_scroll = tk.Scrollbar(alert_frame, orient="vertical", command=self.alert_tree.yview)
+        alert_scroll = tk.Scrollbar(alert_table_frame, orient="vertical", command=self.alert_tree.yview)
         alert_scroll.pack(side="right", fill="y")
         self.alert_tree.configure(yscrollcommand=alert_scroll.set)
 
@@ -388,9 +431,137 @@ class G2BAlertApp:
         self.log_link_count = 0
         self.log_box.config(state="disabled")
 
+    def _build_saved_bids_page(self, parent):
+        lookup_frame = self.make_card(parent, "공고번호 직접 조회")
+        tk.Label(lookup_frame, text="입찰공고번호", **self.label_style).grid(row=0, column=0, sticky="w")
+        tk.Label(lookup_frame, text="차수", **self.label_style).grid(row=0, column=1, sticky="w", padx=(8, 0))
+        self.lookup_bid_no_entry = tk.Entry(lookup_frame, width=32, **self.entry_style)
+        self.lookup_bid_no_entry.grid(row=1, column=0, sticky="ew", pady=(5, 0))
+        self.lookup_bid_ord_entry = tk.Entry(lookup_frame, width=10, **self.entry_style)
+        self.lookup_bid_ord_entry.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(5, 0))
+        self.lookup_bid_btn = self.make_small_button(lookup_frame, "조회", self.lookup_bid_by_no, PRIMARY)
+        self.lookup_bid_btn.grid(row=1, column=2, padx=(8, 0), pady=(5, 0))
+        self.save_lookup_bid_btn = self.make_small_button(lookup_frame, "조회 공고 저장", self.save_lookup_bid, SUCCESS)
+        self.save_lookup_bid_btn.grid(row=1, column=3, padx=(8, 0), pady=(5, 0))
+        self.lookup_result_var = tk.StringVar(value="조회된 공고가 없습니다.")
+        tk.Label(
+            lookup_frame,
+            textvariable=self.lookup_result_var,
+            bg=CARD_BG,
+            fg=SUB_TEXT,
+            anchor="w",
+            justify="left",
+            font=("맑은 고딕", 9),
+            wraplength=780,
+        ).grid(row=2, column=0, columnspan=4, sticky="ew", pady=(8, 0))
+        lookup_frame.grid_columnconfigure(0, weight=1)
+        self.lookup_bid = None
+
+        list_frame = self.make_card(parent, "저장된 공고")
+        toolbar = tk.Frame(list_frame, bg=CARD_BG)
+        toolbar.pack(fill="x", pady=(0, 8))
+        self.saved_search_entry = tk.Entry(toolbar, width=28, **self.entry_style)
+        self.saved_search_entry.pack(side="left")
+        self.make_small_button(toolbar, "검색", self.refresh_saved_bids, GRAY).pack(side="left", padx=(6, 0))
+        self.make_small_button(toolbar, "새로고침", self.refresh_saved_bids, GRAY).pack(side="left", padx=(6, 0))
+        self.make_small_button(toolbar, "상세", self.show_saved_bid_detail, GRAY).pack(side="right", padx=(6, 0))
+        self.make_small_button(toolbar, "링크 열기", self.open_saved_bid_link, GRAY).pack(side="right", padx=(6, 0))
+        self.make_small_button(toolbar, "이메일 수신자", self.open_saved_bid_recipients, GRAY).pack(side="right", padx=(6, 0))
+        self.make_small_button(toolbar, "낙찰정보 즉시 조회", self.check_saved_results_now, PRIMARY).pack(side="right", padx=(6, 0))
+        self.make_small_button(toolbar, "조회대상 전환", self.toggle_saved_bid_monitoring, WARNING).pack(side="right", padx=(6, 0))
+        self.make_small_button(toolbar, "삭제", self.delete_saved_bid, DANGER).pack(side="right")
+
+        options_frame = tk.Frame(list_frame, bg=CARD_BG)
+        options_frame.pack(fill="x", pady=(0, 8))
+        tk.Label(options_frame, text="낙찰정보 감시 주기", **self.label_style).pack(side="left")
+        self.result_interval_entry = tk.Entry(options_frame, width=8, **self.entry_style)
+        self.result_interval_entry.pack(side="left", padx=(8, 4))
+        self.result_interval_entry.insert(0, str(getattr(self.config, "result_interval", self.config.interval)))
+        tk.Label(options_frame, text="분마다 저장 공고의 낙찰정보를 확인", **self.sub_label_style).pack(side="left", padx=(0, 10))
+        self.make_small_button(options_frame, "주기 적용", self.apply_saved_result_interval, GRAY).pack(side="left", padx=(0, 12))
+
+        alert_option_frame = tk.Frame(list_frame, bg=CARD_BG)
+        alert_option_frame.pack(fill="x", pady=(0, 8))
+        self.notify_all_results_var = tk.BooleanVar(value=bool(self.config.notify_all_opening_results))
+        self.notify_all_results_check = tk.Checkbutton(
+            alert_option_frame,
+            text="새 낙찰정보 발견 시 윈도우/미확인 알림",
+            variable=self.notify_all_results_var,
+            command=self.save_result_notification_setting,
+            bg=CARD_BG,
+            fg=TEXT,
+            activebackground=CARD_BG,
+            activeforeground=PRIMARY,
+            selectcolor=CARD_BG,
+            font=FONT,
+            cursor="hand2",
+        )
+        self.notify_all_results_check.pack(side="left")
+        tk.Label(
+            alert_option_frame,
+            text="이메일은 공고별 [이메일 수신자] 지정 여부로 별도 전송됩니다.",
+            **self.sub_label_style,
+        ).pack(side="left", padx=(8, 0))
+
+        self.saved_monitor_status_var = tk.StringVar(value="낙찰정보 자동 감시: 중지 / 조회대상 0건")
+        tk.Label(
+            list_frame,
+            textvariable=self.saved_monitor_status_var,
+            bg=CARD_BG,
+            fg=TEXT,
+            anchor="w",
+            font=("맑은 고딕", 9, "bold"),
+        ).pack(fill="x", pady=(0, 4))
+
+        self.saved_result_status_var = tk.StringVar(value="낙찰정보 조회 전입니다.")
+        tk.Label(
+            list_frame,
+            textvariable=self.saved_result_status_var,
+            bg=CARD_BG,
+            fg=SUB_TEXT,
+            anchor="w",
+            font=("맑은 고딕", 9),
+        ).pack(fill="x", pady=(0, 8))
+
+        table_frame = tk.Frame(list_frame, bg=CARD_BG)
+        table_frame.pack(fill="both", expand=True)
+        columns = ("no", "title", "demand", "bid_end", "opening", "status", "last_check", "monitoring", "result")
+        self.saved_tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=12)
+        headings = {
+            "no": "공고번호",
+            "title": "공고명",
+            "demand": "수요기관",
+            "bid_end": "입찰마감",
+            "opening": "개찰일시",
+            "status": "상태",
+            "last_check": "최근 조회시도",
+            "monitoring": "조회대상",
+            "result": "결과",
+        }
+        widths = {
+            "no": 145,
+            "title": 230,
+            "demand": 130,
+            "bid_end": 105,
+            "opening": 105,
+            "status": 80,
+            "last_check": 115,
+            "monitoring": 55,
+            "result": 55,
+        }
+        for column in columns:
+            self.saved_tree.heading(column, text=headings[column])
+            self.saved_tree.column(column, width=widths[column], anchor="w", stretch=column == "title")
+        self.saved_tree.pack(side="left", fill="both", expand=True)
+        self.saved_tree.bind("<Double-1>", lambda event: self.show_saved_bid_detail())
+        saved_scroll = tk.Scrollbar(table_frame, orient="vertical", command=self.saved_tree.yview)
+        saved_scroll.pack(side="right", fill="y")
+        self.saved_tree.configure(yscrollcommand=saved_scroll.set)
+        self.refresh_saved_bids()
+
     def make_card(self, parent, title):
-        frame = tk.LabelFrame(parent, text=title, bg=CARD_BG, fg=TEXT, padx=14, pady=12, font=("맑은 고딕", 11, "bold"), relief="solid", bd=1)
-        frame.pack(fill="x", padx=16, pady=8)
+        frame = tk.LabelFrame(parent, text=title, bg=CARD_BG, fg=TEXT, padx=14, pady=10, font=("맑은 고딕", 11, "bold"), relief="solid", bd=1)
+        frame.pack(fill="x", padx=16, pady=6)
         return frame
 
     def make_button(self, parent, text, command, bg_color, width=13):
@@ -446,6 +617,17 @@ class G2BAlertApp:
     def mark_unread_alert(self, bid=None, matched_keywords=None):
         self.root.after(0, lambda: self._record_alert(bid, matched_keywords or []))
 
+    def mark_result_alert(self, notification):
+        self.root.after(0, lambda: self._record_result_alert(notification))
+
+    def _record_result_alert(self, notification):
+        self._mark_unread_alert()
+        self.refresh_saved_bids()
+        result = notification.get("result") or {}
+        saved_bid = notification.get("saved_bid")
+        title = saved_bid["bid_name"] if saved_bid else "저장 공고"
+        self.log(f"낙찰정보 알림: {title} / {result.get('successful_bidder_name') or '결과 등록'}")
+
     def _mark_unread_alert(self):
         self.unread_alert_count += 1
         self.unread_alert_btn.config(text=f"미확인 {self.unread_alert_count}")
@@ -481,7 +663,8 @@ class G2BAlertApp:
     def _add_recent_alert(self, bid, matched_keywords):
         self.recent_alert_seq += 1
         item_id = f"alert_{self.recent_alert_seq}"
-        keyword_summary = self._format_keyword_summary(matched_keywords)
+        display_keywords = list(matched_keywords)
+        keyword_summary = self._format_keyword_summary(display_keywords)
         title = self._truncate_text(bid.title, 42)
         values = (
             datetime.now().strftime("%H:%M"),
@@ -493,7 +676,7 @@ class G2BAlertApp:
         self.alert_tree.insert("", 0, iid=item_id, values=values)
         self.recent_alerts[item_id] = {
             "bid": bid,
-            "keywords": list(matched_keywords),
+            "keywords": display_keywords,
             "link": bid.link,
         }
         for old_item in self.alert_tree.get_children()[100:]:
@@ -506,7 +689,7 @@ class G2BAlertApp:
         first_keyword = self._truncate_text(str(keywords[0]), 12)
         if len(keywords) == 1:
             return first_keyword
-        return f"{first_keyword} 외 {len(keywords) - 1}개 ▼"
+        return f"{first_keyword} 외 {len(keywords) - 1}개"
 
     def _truncate_text(self, text, max_length):
         text = str(text or "")
@@ -551,6 +734,454 @@ class G2BAlertApp:
             return
         self.open_log_link(link)
 
+    def save_selected_alert_bid(self):
+        record = self.get_selected_alert_record()
+        if not record or not record.get("bid"):
+            messagebox.showinfo("확인", "저장할 공고를 선택해 주세요.")
+            return
+        self._save_bid(record["bid"])
+
+    def lookup_bid_by_no(self):
+        if self.result_check_running:
+            messagebox.showinfo("확인", "다른 조회가 실행 중입니다.")
+            return
+        config = self.read_config_from_screen()
+        if not config.api_key:
+            messagebox.showwarning("확인", "API 키를 입력해 주세요.")
+            return
+        bid_no = self.lookup_bid_no_entry.get().strip()
+        bid_ord = self.lookup_bid_ord_entry.get().strip()
+        if not bid_no:
+            messagebox.showwarning("확인", "입찰공고번호를 입력해 주세요.")
+            return
+
+        self.lookup_bid_btn.config(state="disabled", text="조회 중")
+        self.lookup_result_var.set("공고를 조회하는 중입니다.")
+        self.lookup_bid = None
+
+        def run_lookup():
+            try:
+                client = G2BClient(
+                    config.api_key,
+                    timeout_seconds=int(config.request_timeout_seconds),
+                    num_of_rows=int(config.num_of_rows),
+                )
+                bid = client.fetch_bid_by_no(bid_no, bid_ord)
+                self.root.after(0, lambda: self._finish_lookup_bid(bid, None))
+            except Exception as error:
+                self.logger.exception("Bid lookup failed.")
+                self.root.after(0, lambda: self._finish_lookup_bid(None, error))
+
+        threading.Thread(target=run_lookup, daemon=True).start()
+
+    def _finish_lookup_bid(self, bid, error):
+        self.lookup_bid_btn.config(state="normal", text="조회")
+        if error:
+            self.lookup_result_var.set(f"조회 실패: {error}")
+            messagebox.showerror("조회 실패", f"공고 조회에 실패했습니다.\n\n{error}")
+            return
+        if not bid:
+            self.lookup_result_var.set("조회 결과가 없습니다. 공고번호, 차수, 공고 유형별 API 지원 여부를 확인해 주세요.")
+            return
+        self.lookup_bid = bid
+        self.lookup_result_var.set(
+            f"[{bid.category_label}] {bid.title}\n"
+            f"공고번호: {bid.bid_no} / 차수: {bid.bid_ord or '000'} / 수요기관: {bid.demand_agency or '-'}"
+        )
+
+    def save_lookup_bid(self):
+        if not self.lookup_bid:
+            messagebox.showinfo("확인", "먼저 공고번호로 조회해 주세요.")
+            return
+        self._save_bid(self.lookup_bid)
+
+    def _save_bid(self, bid):
+        if not bid.bid_no:
+            messagebox.showwarning("확인", "공고번호가 없는 공고는 저장할 수 없습니다.")
+            return
+        try:
+            saved_id, created = self.database.save_bid(bid)
+        except Exception as error:
+            self.logger.exception("Save bid failed.")
+            messagebox.showerror("저장 실패", f"공고 저장에 실패했습니다.\n\n{error}")
+            return
+        self.refresh_saved_bids()
+        if created:
+            self.log(f"저장 완료: {bid.bid_no} / {bid.title}")
+            messagebox.showinfo("저장 완료", "공고를 저장했습니다.")
+        else:
+            self.log(f"이미 저장된 공고 갱신: {bid.bid_no}")
+            messagebox.showinfo("저장 완료", "이미 저장된 공고라 정보를 갱신했습니다.")
+        self._select_saved_bid(saved_id)
+        self.start_saved_result_monitor_if_needed()
+
+    def refresh_saved_bids(self):
+        if not hasattr(self, "saved_tree"):
+            return
+        search_text = self.saved_search_entry.get().strip() if hasattr(self, "saved_search_entry") else ""
+        for item in self.saved_tree.get_children():
+            self.saved_tree.delete(item)
+        self.saved_bid_rows.clear()
+        try:
+            rows = self.database.list_saved_bids(search_text)
+        except Exception as error:
+            self.logger.exception("Could not load saved bids.")
+            self.log(f"저장 공고 목록 조회 실패: {error}")
+            return
+        monitoring_count = 0
+        for row in rows:
+            item_id = f"saved_{row['id']}"
+            result_text = "있음" if row["result_found_at"] else "-"
+            if row["monitoring_enabled"]:
+                monitoring_count += 1
+            values = (
+                f"{row['bid_pbanc_no']}-{row['bid_pbanc_ord'] or '000'}",
+                self._truncate_text(row["bid_name"], 36),
+                self._truncate_text(row["demand_organization_name"], 18),
+                self._short_datetime(row["bid_end_datetime"]),
+                self._short_datetime(row["opening_datetime"]),
+                row["status"],
+                self._short_datetime(row["last_result_check_at"]),
+                "ON" if row["monitoring_enabled"] else "OFF",
+                result_text,
+            )
+            self.saved_tree.insert("", "end", iid=item_id, values=values)
+            self.saved_bid_rows[item_id] = row
+        self._update_saved_monitor_status(monitoring_count, len(rows))
+
+    def _update_saved_monitor_status(self, monitoring_count=None, total_count=None):
+        if not hasattr(self, "saved_monitor_status_var"):
+            return
+        if monitoring_count is None or total_count is None:
+            monitoring_count, total_count = self._get_saved_monitor_counts()
+        interval = self._get_result_interval(default="-")
+        running = bool(self.saved_result_scheduler and self.saved_result_scheduler.running)
+        running_text = "작동 중" if running else "중지"
+        self.saved_monitor_status_var.set(
+            f"낙찰정보 자동 감시: {running_text} / "
+            f"주기: {interval}분 / "
+            f"조회대상 {monitoring_count}건 / 저장 공고 {total_count}건"
+        )
+
+    def _get_saved_monitor_counts(self):
+        try:
+            rows = self.database.list_saved_bids("")
+        except Exception:
+            rows = list(self.saved_bid_rows.values())
+        return sum(1 for row in rows if row["monitoring_enabled"]), len(rows)
+
+    def _get_result_interval(self, default=1):
+        try:
+            interval = int(str(self.result_interval_entry.get()).strip())
+        except Exception:
+            try:
+                interval = int(getattr(self.config, "result_interval", self.config.interval))
+            except Exception:
+                return default
+        return max(MIN_INTERVAL_MINUTES, interval)
+
+    def apply_saved_result_interval(self):
+        config = self._read_result_monitor_config(show_warning=True)
+        if not config:
+            return
+        if self.saved_result_scheduler and self.saved_result_scheduler.running:
+            self.saved_result_scheduler.update_config(config)
+        else:
+            self.start_saved_result_monitor_if_needed(show_warning=True)
+        self._update_saved_monitor_status()
+        self.log(f"낙찰정보 감시 주기 변경: {config.result_interval}분")
+        messagebox.showinfo("주기 적용", f"저장 공고 낙찰정보 감시 주기를 {config.result_interval}분으로 적용했습니다.")
+
+    def save_result_notification_setting(self):
+        try:
+            config = self.read_config_from_screen()
+            self.config = config
+            save_config(config)
+            if self.saved_result_scheduler and self.saved_result_scheduler.running:
+                self.saved_result_scheduler.update_config(config)
+            self.log(f"새 낙찰정보 알림: {'ON' if config.notify_all_opening_results else 'OFF'}")
+        except Exception:
+            self.logger.exception("Could not save result notification setting.")
+
+    def _select_saved_bid(self, saved_id):
+        item_id = f"saved_{saved_id}"
+        if item_id in self.saved_tree.get_children():
+            self.saved_tree.selection_set(item_id)
+            self.saved_tree.focus(item_id)
+            self.saved_tree.see(item_id)
+
+    def get_selected_saved_bid(self):
+        selected = self.saved_tree.selection()
+        if not selected:
+            return None
+        return self.saved_bid_rows.get(selected[0])
+
+    def _short_datetime(self, value):
+        value = str(value or "")
+        if len(value) >= 16 and value[4:5] == "-":
+            return value[:16].replace("T", " ")
+        if len(value) >= 12 and value[:12].isdigit():
+            return f"{value[:4]}-{value[4:6]}-{value[6:8]} {value[8:10]}:{value[10:12]}"
+        return value[:16] if value else "-"
+
+    def _format_amount(self, value):
+        text = str(value or "").strip()
+        if not text:
+            return "-"
+        normalized = re.sub(r"[^\d.-]", "", text)
+        if not normalized or normalized in {"-", ".", "-."}:
+            return text
+        try:
+            number = float(normalized)
+        except ValueError:
+            return text
+        if number.is_integer():
+            return f"{int(number):,}원"
+        return f"{number:,.2f}원"
+
+    def delete_saved_bid(self):
+        row = self.get_selected_saved_bid()
+        if not row:
+            messagebox.showinfo("확인", "삭제할 공고를 선택해 주세요.")
+            return
+        if not messagebox.askyesno("삭제 확인", "선택한 저장 공고와 관련 낙찰정보를 삭제할까요?"):
+            return
+        try:
+            self.database.delete_saved_bid(row["id"])
+        except Exception as error:
+            self.logger.exception("Delete saved bid failed.")
+            messagebox.showerror("삭제 실패", f"삭제에 실패했습니다.\n\n{error}")
+            return
+        self.refresh_saved_bids()
+        self.log(f"저장 공고 삭제: {row['bid_pbanc_no']}")
+        self.start_saved_result_monitor_if_needed()
+
+    def toggle_saved_bid_monitoring(self):
+        row = self.get_selected_saved_bid()
+        if not row:
+            messagebox.showinfo("확인", "조회대상 여부를 변경할 공고를 선택해 주세요.")
+            return
+        enabled = not bool(row["monitoring_enabled"])
+        try:
+            self.database.set_monitoring_enabled(row["id"], enabled)
+        except Exception as error:
+            self.logger.exception("Monitoring toggle failed.")
+            messagebox.showerror("변경 실패", f"모니터링 설정 변경에 실패했습니다.\n\n{error}")
+            return
+        self.refresh_saved_bids()
+        self._select_saved_bid(row["id"])
+        self.log(f"저장 공고 낙찰정보 조회대상 {'ON' if enabled else 'OFF'}: {row['bid_pbanc_no']}")
+        self.start_saved_result_monitor_if_needed(show_warning=True)
+        messagebox.showinfo(
+            "조회대상 변경",
+            f"선택한 공고를 낙찰정보 자동 감시 대상에서 {'포함' if enabled else '제외'}했습니다.\n\n"
+            f"조회대상 ON인 공고는 {self._get_result_interval()}분마다 낙찰정보 API로 확인합니다.\n"
+            "새 낙찰정보가 발견되면 윈도우 알림과 미확인 배지로 알려줍니다.",
+        )
+
+    def start_saved_result_monitor_if_needed(self, show_warning=False):
+        monitoring_count, total_count = self._get_saved_monitor_counts()
+        if monitoring_count == 0:
+            self.stop_saved_result_monitor()
+            self._update_saved_monitor_status(monitoring_count, total_count)
+            return False
+
+        config = self._read_result_monitor_config(show_warning=show_warning)
+        if not config:
+            self._update_saved_monitor_status(monitoring_count, total_count)
+            return False
+
+        if self.saved_result_scheduler and self.saved_result_scheduler.running:
+            self.saved_result_scheduler.update_config(config)
+            self._update_saved_monitor_status(monitoring_count, total_count)
+            return True
+
+        self.saved_result_scheduler = SavedResultScheduler(
+            config,
+            self.database,
+            self.log,
+            self.mark_result_alert,
+            self.handle_saved_result_auto_check_complete,
+            WindowsNotifier(logger=self.logger),
+            self.logger,
+            self.email_alert_service,
+        )
+        self.saved_result_scheduler.start()
+        self._update_saved_monitor_status(monitoring_count, total_count)
+        self.log(f"저장 공고 낙찰정보 자동 감시 시작: {config.result_interval}분마다 / 조회대상 {monitoring_count}건")
+        return True
+
+    def stop_saved_result_monitor(self):
+        if self.saved_result_scheduler:
+            self.saved_result_scheduler.stop()
+            self.saved_result_scheduler = None
+
+    def _read_result_monitor_config(self, show_warning=False):
+        config = self.read_config_from_screen()
+        if not config.api_key:
+            if show_warning:
+                messagebox.showwarning("확인", "낙찰정보 자동 감시를 시작하려면 API 키를 입력해 주세요.")
+            return None
+        try:
+            interval = int(str(self.result_interval_entry.get()).strip())
+        except ValueError:
+            if show_warning:
+                messagebox.showwarning("확인", "낙찰정보 자동 감시 주기는 숫자로 입력해 주세요.")
+            return None
+        if interval < MIN_INTERVAL_MINUTES:
+            if show_warning:
+                messagebox.showwarning("확인", f"낙찰정보 자동 감시 주기는 최소 {MIN_INTERVAL_MINUTES}분 이상이어야 합니다.")
+            return None
+        config.result_interval = str(interval)
+        self.config = config
+        save_config(config)
+        return config
+
+    def handle_saved_result_auto_check_complete(self, summary):
+        self.root.after(0, lambda: self._finish_saved_result_auto_check(summary))
+
+    def _finish_saved_result_auto_check(self, summary):
+        self.refresh_saved_bids()
+        checked = summary["checked"]
+        failed = summary.get("failed", 0)
+        no_result = summary.get("no_result", 0)
+        new_results = summary["new_results"]
+        checked_at = summary["checked_at"].strftime("%Y-%m-%d %H:%M:%S")
+        self.saved_result_status_var.set(
+            f"최근 자동 조회: {checked_at} / 대상 {checked}건 / "
+            f"결과 없음 {no_result}건 / 실패 {failed}건 / 새 결과 {new_results}건"
+        )
+        if new_results:
+            self.set_status(f"낙찰정보 자동 감시 / 새 결과 {new_results}건")
+
+    def open_saved_bid_link(self):
+        row = self.get_selected_saved_bid()
+        if not row:
+            messagebox.showinfo("확인", "링크를 열 공고를 선택해 주세요.")
+            return
+        if not row["detail_url"]:
+            messagebox.showinfo("확인", "선택한 공고에 링크가 없습니다.")
+            return
+        self.open_log_link(row["detail_url"])
+
+    def show_saved_bid_detail(self):
+        row = self.get_selected_saved_bid()
+        if not row:
+            messagebox.showinfo("확인", "상세보기할 공고를 선택해 주세요.")
+            return
+        email_recipient_count = len(self.database.get_saved_bid_recipient_ids(row["id"]))
+        detail = (
+            f"공고명: {row['bid_name'] or '-'}\n"
+            f"공고번호: {row['bid_pbanc_no']} / 차수: {row['bid_pbanc_ord'] or '000'}\n"
+            f"공고기관: {row['organization_name'] or '-'}\n"
+            f"수요기관: {row['demand_organization_name'] or '-'}\n"
+            f"입찰방식: {row['bid_method'] or '-'}\n"
+            f"계약방법: {row['contract_method'] or '-'}\n"
+            f"예산금액: {self._format_amount(row['budget_amount'])}\n"
+            f"입찰마감: {self._short_datetime(row['bid_end_datetime'])}\n"
+            f"개찰일시: {self._short_datetime(row['opening_datetime'])}\n"
+            f"낙찰정보 조회대상: {'ON' if row['monitoring_enabled'] else 'OFF'}\n"
+            f"낙찰정보 이메일 수신자: {email_recipient_count}명\n"
+            f"낙찰정보 자동 감시 주기: {self._get_result_interval()}분\n"
+            f"최근 낙찰정보 API 조회 시도: {self._short_datetime(row['last_result_check_at'])}\n"
+            f"DB 파일: {DB_FILE}"
+        )
+        messagebox.showinfo("저장 공고 상세", detail)
+
+    def check_saved_results_now(self):
+        if self.result_check_running:
+            messagebox.showinfo("확인", "낙찰정보 조회가 이미 실행 중입니다.")
+            return
+        config = self.read_config_from_screen()
+        if not config.api_key:
+            messagebox.showwarning("확인", "API 키를 입력해 주세요.")
+            return
+        self.config = config
+        save_config(config)
+
+        self.result_check_running = True
+        self.set_status("낙찰정보 조회 중")
+        if hasattr(self, "saved_result_status_var"):
+            self.saved_result_status_var.set("낙찰정보를 조회하는 중입니다.")
+        self._update_saved_monitor_status()
+        self.log("저장 공고 낙찰정보 즉시 조회 시작")
+
+        def run_check():
+            try:
+                monitor = ResultMonitorService(
+                    config,
+                    database=self.database,
+                    notifier=WindowsNotifier(logger=self.logger),
+                    logger=self.logger,
+                    email_alert_service=self.email_alert_service,
+                )
+                summary = monitor.check_saved_bids(on_log=self.log)
+                self.root.after(0, lambda: self._finish_saved_result_check(summary, None))
+            except Exception as error:
+                self.logger.exception("Saved result check failed.")
+                self.root.after(0, lambda: self._finish_saved_result_check(None, error))
+
+        threading.Thread(target=run_check, daemon=True).start()
+
+    def _finish_saved_result_check(self, summary, error):
+        self.result_check_running = False
+        if error:
+            self.log(f"낙찰정보 조회 실패: {error}")
+            self.set_status("낙찰정보 조회 실패")
+            if hasattr(self, "saved_result_status_var"):
+                self.saved_result_status_var.set("낙찰정보 조회 실패")
+            self._update_saved_monitor_status()
+            messagebox.showerror("조회 실패", f"낙찰정보 조회에 실패했습니다.\n\n{error}")
+            return
+        self.refresh_saved_bids()
+        for notification in summary["notifications"]:
+            if self.config.windows_notifications_enabled:
+                WindowsNotifier(logger=self.logger).send(notification["title"], notification["message"])
+            self.log(notification["message"])
+        checked = summary["checked"]
+        failed = summary.get("failed", 0)
+        no_result = summary.get("no_result", 0)
+        new_results = summary["new_results"]
+        checked_at = summary["checked_at"].strftime("%Y-%m-%d %H:%M:%S")
+        status_text = (
+            f"최근 낙찰정보 조회: {checked_at} / 대상 {checked}건 / "
+            f"결과 없음 {no_result}건 / 실패 {failed}건 / 새 결과 {new_results}건"
+        )
+        if checked == 0:
+            status_text += " / 조회대상 ON인 저장 공고가 없습니다."
+        elif new_results == 0 and failed == 0 and no_result == 0:
+            status_text += " / 새 결과 없음"
+        if hasattr(self, "saved_result_status_var"):
+            self.saved_result_status_var.set(status_text)
+        for report in summary.get("reports", []):
+            self.log(self._format_result_report(report))
+        self.log(f"낙찰정보 조회 완료: 대상 {checked}건 / 결과 없음 {no_result}건 / 실패 {failed}건 / 새 결과 {new_results}건")
+        self.set_status(f"낙찰정보 조회 완료 / 대상 {checked}건 / 새 결과 {new_results}건")
+        detail_text = self._format_result_report_summary(summary)
+        messagebox.showinfo("조회 완료", f"{status_text}\n\n{detail_text}" if detail_text else status_text)
+
+    def _format_result_report(self, report):
+        bid_no = report.get("bid_no") or "-"
+        bid_ord = report.get("bid_ord") or "000"
+        reason = report.get("reason") or "-"
+        status = report.get("status")
+        if status == "failed":
+            label = "조회 실패"
+        elif status == "no_result":
+            label = "결과 없음"
+        else:
+            label = "결과 확인"
+        return f"낙찰정보 {label}: {bid_no} / 차수 {bid_ord} - {reason}"
+
+    def _format_result_report_summary(self, summary):
+        reports = summary.get("reports", [])
+        if not reports:
+            return ""
+        lines = [self._format_result_report(report) for report in reports[:8]]
+        if len(reports) > 8:
+            lines.append(f"... 외 {len(reports) - 8}건")
+        return "\n".join(lines)
+
     def show_keyword_dropdown(self, item_id):
         record = self.recent_alerts.get(item_id)
         if not record:
@@ -561,24 +1192,41 @@ class G2BAlertApp:
         if not keywords:
             return
 
-        bbox = self.alert_tree.bbox(item_id, "keywords")
-        if bbox:
-            x, y, width, height = bbox
-            root_x = self.alert_tree.winfo_rootx() + x
-            root_y = self.alert_tree.winfo_rooty() + y + height
-            popup_width = max(width, 180)
-        else:
-            root_x = self.alert_tree.winfo_pointerx()
-            root_y = self.alert_tree.winfo_pointery()
-            popup_width = 220
+        bid = record.get("bid")
+        title = self._truncate_text(getattr(bid, "title", ""), 70)
 
-        popup = tk.Toplevel(self.root)
-        popup.overrideredirect(True)
-        popup.configure(bg=CARD_BG, highlightbackground=BORDER, highlightthickness=1)
-        popup.geometry(f"{popup_width}x{min(160, 28 * len(keywords) + 14)}+{root_x}+{root_y}")
-        popup.transient(self.root)
+        window = tk.Toplevel(self.root)
+        window.title("매칭 키워드")
+        window.configure(bg=APP_BG)
+        window.geometry("360x260")
+        window.minsize(300, 180)
+        window.transient(self.root)
 
-        list_frame = tk.Frame(popup, bg=CARD_BG, padx=6, pady=6)
+        def on_close():
+            self.keyword_window = None
+            if self._widget_exists(window):
+                window.destroy()
+
+        frame = tk.Frame(window, bg=CARD_BG, padx=12, pady=12)
+        frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        toolbar = tk.Frame(frame, bg=CARD_BG)
+        toolbar.pack(fill="x", pady=(0, 8))
+        tk.Label(toolbar, text="매칭 키워드", bg=CARD_BG, fg=PRIMARY_DARK, font=FONT_BOLD).pack(side="left")
+        self.make_small_button(toolbar, "닫기", on_close, GRAY).pack(side="right")
+
+        tk.Label(
+            frame,
+            text=title or "선택한 공고",
+            bg=CARD_BG,
+            fg=SUB_TEXT,
+            anchor="w",
+            justify="left",
+            font=("맑은 고딕", 9),
+            wraplength=310,
+        ).pack(fill="x", pady=(0, 8))
+
+        list_frame = tk.Frame(frame, bg=CARD_BG)
         list_frame.pack(fill="both", expand=True)
         scrollbar = tk.Scrollbar(list_frame)
         scrollbar.pack(side="right", fill="y")
@@ -586,27 +1234,30 @@ class G2BAlertApp:
             list_frame,
             bg=INPUT_BG,
             fg=TEXT,
-            relief="flat",
-            bd=0,
-            highlightthickness=0,
-            font=("맑은 고딕", 9),
+            relief="solid",
+            bd=1,
+            highlightthickness=1,
+            highlightbackground=BORDER,
+            highlightcolor=PRIMARY,
             activestyle="none",
+            font=("맑은 고딕", 10),
             yscrollcommand=scrollbar.set,
         )
         keyword_list.pack(side="left", fill="both", expand=True)
         scrollbar.config(command=keyword_list.yview)
-        for keyword in keywords:
-            keyword_list.insert("end", keyword)
+        for index, keyword in enumerate(keywords, start=1):
+            keyword_list.insert("end", f"{index}. {keyword}")
 
-        popup.bind("<FocusOut>", lambda event: self.hide_keyword_dropdown())
-        keyword_list.bind("<Escape>", lambda event: self.hide_keyword_dropdown())
-        self.keyword_dropdown = popup
-        popup.focus_force()
+        window.bind("<Escape>", lambda event: on_close())
+        window.protocol("WM_DELETE_WINDOW", on_close)
+        self.keyword_window = window
+        window.lift()
+        window.focus_force()
 
     def hide_keyword_dropdown(self):
-        if self._widget_exists(self.keyword_dropdown):
-            self.keyword_dropdown.destroy()
-        self.keyword_dropdown = None
+        if self._widget_exists(self.keyword_window):
+            self.keyword_window.destroy()
+        self.keyword_window = None
 
     def clear_recent_alerts(self):
         self.hide_keyword_dropdown()
@@ -777,6 +1428,54 @@ class G2BAlertApp:
         except Exception as error:
             self.log(f"링크 열기 실패: {error}")
 
+    def toggle_keyword_email_notifications(self):
+        enabled = bool(self.keyword_email_var.get())
+        config = self.read_config_from_screen()
+        self.config = config
+        self.database.sync_keyword_setting(config.keywords, enabled)
+        save_config(config)
+        self.email_alert_service.update_config(config)
+        self.log(f"신규 공고 이메일 알림: {'ON' if enabled else 'OFF'}")
+        if enabled:
+            recipient_count = len(self.database.get_keyword_email_recipients())
+            if not config.smtp_username or recipient_count == 0:
+                messagebox.showinfo(
+                    "이메일 설정 필요",
+                    "이메일 알림을 사용하려면 SMTP 앱 비밀번호와 키워드 알림 수신자를 설정해 주세요.",
+                )
+                self.open_email_settings()
+
+    def open_email_settings(self):
+        config = self.read_config_from_screen()
+        self.config = config
+        self.database.sync_keyword_setting(config.keywords, config.keyword_email_enabled)
+        EmailSettingsWindow(
+            self.root,
+            config,
+            self.database,
+            self.handle_email_settings_saved,
+            self.logger,
+        )
+
+    def handle_email_settings_saved(self, config):
+        self.config = config
+        self.email_alert_service.update_config(config)
+        self.log("SMTP 및 이메일 수신자 설정 저장 완료")
+
+    def open_saved_bid_recipients(self):
+        row = self.get_selected_saved_bid()
+        if not row:
+            messagebox.showinfo("확인", "이메일 수신자를 지정할 저장 공고를 선택해 주세요.")
+            return
+        SavedBidRecipientWindow(
+            self.root,
+            self.database,
+            row,
+            lambda count: self.log(
+                f"저장 공고 이메일 수신자 변경: {row['bid_pbanc_no']} / {count}명"
+            ),
+        )
+
     def get_selected_categories(self):
         return [category for category, var in self.category_vars.items() if var.get()]
 
@@ -785,12 +1484,24 @@ class G2BAlertApp:
             api_key="".join(self.api_key_entry.get().split()),
             keywords=self.keyword_text.get("1.0", "end").strip(),
             interval=self.interval_entry.get().strip(),
+            result_interval=self.result_interval_entry.get().strip() if hasattr(self, "result_interval_entry") else str(getattr(self.config, "result_interval", self.config.interval)),
             selected_categories=self.get_selected_categories(),
             windows_notifications_enabled=bool(self.windows_notification_var.get()),
             bootstrap_minutes=int(self.config.bootstrap_minutes),
             overlap_minutes=int(self.config.overlap_minutes),
             request_timeout_seconds=int(self.config.request_timeout_seconds),
             num_of_rows=int(self.config.num_of_rows),
+            result_monitoring_enabled=False,
+            notify_all_opening_results=bool(self.notify_all_results_var.get()),
+            notify_each_opening_company=bool(self.config.notify_each_opening_company),
+            company_name=self.config.company_name,
+            business_number=self.config.business_number,
+            representative_name=self.config.representative_name,
+            keyword_email_enabled=bool(self.keyword_email_var.get()),
+            smtp_host=self.config.smtp_host,
+            smtp_port=int(self.config.smtp_port),
+            smtp_username=self.config.smtp_username,
+            smtp_sender_name=self.config.smtp_sender_name,
         )
 
     def get_validated_monitor_inputs(self, warn_api_volume=True):
@@ -808,10 +1519,10 @@ class G2BAlertApp:
         try:
             interval = int(config.interval)
         except ValueError:
-            messagebox.showwarning("확인", "확인 주기는 숫자로 입력해 주세요.")
+            messagebox.showwarning("확인", "키워드 감시 주기는 숫자로 입력해 주세요.")
             return None
         if interval < MIN_INTERVAL_MINUTES:
-            messagebox.showwarning("확인", f"확인 주기는 최소 {MIN_INTERVAL_MINUTES}분 이상으로 입력해 주세요.")
+            messagebox.showwarning("확인", f"키워드 감시 주기는 최소 {MIN_INTERVAL_MINUTES}분 이상으로 입력해 주세요.")
             return None
 
         estimated_calls = int(1440 / interval) * len(config.selected_categories)
@@ -819,7 +1530,7 @@ class G2BAlertApp:
             result = messagebox.askyesno(
                 "API 호출량 확인",
                 f"현재 설정은 하루 약 {estimated_calls:,}회 API를 호출할 수 있습니다.\n\n"
-                f"- 확인 주기: {interval}분\n"
+                f"- 키워드 감시 주기: {interval}분\n"
                 f"- 조회 종류: {len(config.selected_categories)}개\n\n"
                 "5분 미만 주기는 API 호출량이 많아질 수 있습니다.\n"
                 "그래도 이 설정으로 시작할까요?",
@@ -837,6 +1548,8 @@ class G2BAlertApp:
 
         self.config = config
         save_config(config)
+        self.database.sync_keyword_setting(config.keywords, config.keyword_email_enabled)
+        self.email_alert_service.update_config(config)
         self.scheduler = BidScheduler(
             config,
             keywords,
@@ -846,6 +1559,7 @@ class G2BAlertApp:
             self.set_check_summary,
             WindowsNotifier(logger=self.logger),
             self.logger,
+            self.email_alert_service,
         )
         if not self.scheduler.start():
             messagebox.showwarning("확인", "이전 감시 작업이 아직 종료 중입니다. 잠시 후 다시 시작해 주세요.")
@@ -857,7 +1571,7 @@ class G2BAlertApp:
         self.set_status("감시 중")
         self.log("감시 시작")
         self.log(f"키워드: {', '.join(keywords)}")
-        self.log(f"확인 주기: {interval}분")
+        self.log(f"키워드 감시 주기: {interval}분")
         self.log(f"예상 API 호출량: 하루 약 {estimated_calls:,}회")
         self.log(f"윈도우 알림: {'ON' if config.windows_notifications_enabled else 'OFF'}")
         selected_labels = [CATEGORY_LABELS.get(category, category) for category in config.selected_categories]
@@ -875,6 +1589,8 @@ class G2BAlertApp:
 
         self.config = config
         save_config(config)
+        self.database.sync_keyword_setting(config.keywords, config.keyword_email_enabled)
+        self.email_alert_service.update_config(config)
         self.update_monitor_summary(config, keywords)
 
         if self.scheduler and self.scheduler.running:
@@ -889,6 +1605,7 @@ class G2BAlertApp:
                 self.set_check_summary,
                 WindowsNotifier(logger=self.logger),
                 self.logger,
+                self.email_alert_service,
             )
 
         self.manual_check_running = True
@@ -920,6 +1637,13 @@ class G2BAlertApp:
         self.next_check_var.set("다음 확인 예정: -")
         self.update_monitor_summary()
         self.log("감시 중지")
+
+    def close(self):
+        if self.scheduler:
+            self.scheduler.stop()
+        self.stop_saved_result_monitor()
+        self.email_alert_service.stop()
+        self.root.destroy()
 
     def test_alert(self):
         if not self.windows_notification_var.get():
