@@ -12,7 +12,7 @@ python -m PyInstaller ^
 
 echo.
 echo Build complete. Check dist\g2b_alert.exe
-echo Run the exe once to create config.json, data, and logs automatically.
+echo Run the exe once to create config.json, data, and logs under %%LOCALAPPDATA%%\G2BAlert.
 
 if exist build rmdir /s /q build
 if exist g2b_alert.spec del /q g2b_alert.spec

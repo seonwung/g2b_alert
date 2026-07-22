@@ -1,6 +1,19 @@
 {
   "api_key": "PUT_YOUR_G2B_API_KEY_HERE",
   "keywords": "fids, check-in counter",
+  "and_keywords": "",
+  "or_keywords": "fids, check-in counter",
+  "exclude_keywords": "",
+  "keyword_rules": [
+    {
+      "id": "example-fids",
+      "keyword": "fids",
+      "operator": "or",
+      "categories": ["service", "goods"],
+      "targets": ["bid_lifecycle"],
+      "enabled": true
+    }
+  ],
   "interval": "5",
   "result_interval": "5",
   "selected_categories": [
@@ -14,13 +27,9 @@
   "overlap_minutes": 10,
   "request_timeout_seconds": 30,
   "num_of_rows": 100,
-  "result_monitoring_enabled": false,
   "notify_all_opening_results": true,
-  "notify_each_opening_company": false,
-  "company_name": "",
-  "business_number": "",
-  "representative_name": "",
   "keyword_email_enabled": false,
+  "prespec_search_enabled": false,
   "smtp_host": "smtp.gmail.com",
   "smtp_port": 587,
   "smtp_username": "alerts@example.com",
