@@ -119,7 +119,79 @@ class EmailRepository:
                 (self._now_text(), recipient_id),
             )
             connection.execute("DELETE FROM keyword_recipient_map WHERE recipient_id = ?", (recipient_id,))
+            connection.execute("DELETE FROM keyword_rule_recipient_map WHERE recipient_id = ?", (recipient_id,))
             connection.execute("DELETE FROM saved_bid_recipient_map WHERE recipient_id = ?", (recipient_id,))
+
+    def sync_keyword_rules(self, rules):
+        """Keep persistent recipient targets aligned with config-backed rules."""
+        current = self._now_text()
+        rows = [
+            (str(rule.get("id") or ""), str(rule.get("name") or rule.get("keyword") or ""), current)
+            for rule in rules or [] if str(rule.get("id") or "")
+        ]
+        active_ids = {row[0] for row in rows}
+        with self.connect() as connection:
+            connection.executemany(
+                """
+                INSERT INTO keyword_rule_settings (rule_id, name, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(rule_id) DO UPDATE SET name=excluded.name, updated_at=excluded.updated_at
+                """,
+                rows,
+            )
+            stored = connection.execute("SELECT rule_id FROM keyword_rule_settings").fetchall()
+            stale = [row["rule_id"] for row in stored if row["rule_id"] not in active_ids]
+            connection.executemany("DELETE FROM keyword_rule_settings WHERE rule_id = ?", [(value,) for value in stale])
+
+    def get_keyword_rule_recipient_ids(self, rule_id):
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT recipient_id FROM keyword_rule_recipient_map WHERE rule_id = ?",
+                (str(rule_id),),
+            ).fetchall()
+        return {row["recipient_id"] for row in rows}
+
+    def set_keyword_rule_recipients(self, rule_id, recipient_ids):
+        current = self._now_text()
+        recipient_ids = {int(value) for value in recipient_ids}
+        with self.connect() as connection:
+            connection.execute(
+                "UPDATE keyword_rule_settings SET recipient_configured = 1, updated_at = ? WHERE rule_id = ?",
+                (current, str(rule_id)),
+            )
+            connection.execute("DELETE FROM keyword_rule_recipient_map WHERE rule_id = ?", (str(rule_id),))
+            connection.executemany(
+                "INSERT INTO keyword_rule_recipient_map (rule_id, recipient_id, created_at) VALUES (?, ?, ?)",
+                [(str(rule_id), value, current) for value in sorted(recipient_ids)],
+            )
+
+    def get_keyword_rule_email_recipients(self, rule_ids):
+        rule_ids = tuple(dict.fromkeys(str(value) for value in rule_ids if value))
+        if not rule_ids:
+            return self.get_keyword_email_recipients()
+        placeholders = ",".join("?" for _ in rule_ids)
+        with self.connect() as connection:
+            configured = connection.execute(
+                f"SELECT COUNT(*) AS count FROM keyword_rule_settings WHERE rule_id IN ({placeholders}) AND recipient_configured = 1",
+                rule_ids,
+            ).fetchone()["count"]
+            if not configured:
+                return self.get_keyword_email_recipients()
+            mapped = connection.execute(
+                f"""
+                SELECT DISTINCT r.* FROM recipients r
+                JOIN keyword_rule_recipient_map m ON m.recipient_id = r.id
+                WHERE m.rule_id IN ({placeholders}) AND r.active = 1
+                ORDER BY r.name COLLATE NOCASE
+                """,
+                rule_ids,
+            ).fetchall()
+        if configured == len(rule_ids):
+            return mapped
+        # Unconfigured legacy rules continue using the former global recipients.
+        combined = {row["id"]: row for row in mapped}
+        combined.update({row["id"]: row for row in self.get_keyword_email_recipients()})
+        return sorted(combined.values(), key=lambda row: (row["name"].casefold(), row["email"].casefold()))
 
     def get_keyword_recipient_ids(self):
         with self.connect() as connection:

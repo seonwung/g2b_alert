@@ -1,5 +1,9 @@
-import tkinter as tk
+import sys
+import signal
 import threading
+
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
 
 from g2b_alert.app import Application
 from g2b_alert.model.logging_setup import setup_logger
@@ -7,14 +11,9 @@ from g2b_alert.model.logging_setup import setup_logger
 
 def main():
     logger = setup_logger()
-    root = None
+    qt_app = None
     application = None
-
-    def report_tk_exception(exc_type, value, traceback):
-        logger.critical(
-            "Unhandled Tkinter callback error.",
-            exc_info=(exc_type, value, traceback),
-        )
+    interrupt_timer = None
 
     def report_thread_exception(args):
         logger.critical(
@@ -24,13 +23,31 @@ def main():
         )
 
     try:
-        root = tk.Tk()
-        root.report_callback_exception = report_tk_exception
+        qt_app = QApplication.instance() or QApplication(sys.argv)
+        qt_app.setApplicationName("g2bAlert")
+        qt_app.setOrganizationName("g2bAlert")
         threading.excepthook = report_thread_exception
-        application = Application(root)
-        root.mainloop()
+        application = Application(qt_app)
+
+        def handle_console_interrupt(_signal_number, _frame):
+            logger.info("Console interrupt requested.")
+            if application is not None and not application.view.closing:
+                application.close()
+            else:
+                qt_app.quit()
+
+        signal.signal(signal.SIGINT, handle_console_interrupt)
+        if hasattr(signal, "SIGBREAK"):
+            signal.signal(signal.SIGBREAK, handle_console_interrupt)
+
+        # Let Python service console signals while Qt owns the main event loop.
+        interrupt_timer = QTimer()
+        interrupt_timer.timeout.connect(lambda: None)
+        interrupt_timer.start(200)
+        exit_code = qt_app.exec()
         if application is not None and not application.view.closing:
             logger.critical("Application main loop ended without a normal close request.")
+        return exit_code
     except BaseException:
         logger.critical("Application startup or main loop terminated unexpectedly.", exc_info=True)
         raise

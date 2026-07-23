@@ -1,42 +1,53 @@
+"""Thread-safe dispatch to the Qt event loop (with a tiny legacy test adapter)."""
+
 import queue
-import tkinter as tk
+
+from PySide6.QtCore import QObject, Signal
+
+
+class _SignalBridge(QObject):
+    requested = Signal(object)
+
+    def __init__(self):
+        super().__init__()
+        self.requested.connect(self._run)
+
+    @staticmethod
+    def _run(callback):
+        callback()
 
 
 class UiDispatcher:
-    """Runs worker callbacks only from Tkinter's main thread."""
-
     def __init__(self, root, poll_interval_ms=50):
-        self.root = root
-        self.poll_interval_ms = poll_interval_ms
-        self.callbacks = queue.Queue()
         self.running = True
-        self.root.after(self.poll_interval_ms, self._poll)
+        self.root = root
+        self.callbacks = queue.Queue()
+        self._legacy = hasattr(root, "after")
+        if self._legacy:
+            root.after(poll_interval_ms, self._poll)
+        else:
+            self.bridge = _SignalBridge()
 
     def post(self, callback):
-        if self.running:
+        if not self.running:
+            return
+        if self._legacy:
             self.callbacks.put(callback)
+        else:
+            self.bridge.requested.emit(callback)
 
     def stop(self):
         self.running = False
-        while True:
+        while not self.callbacks.empty():
             try:
                 self.callbacks.get_nowait()
             except queue.Empty:
                 break
-
     def _poll(self):
         if not self.running:
             return
         while True:
             try:
-                callback = self.callbacks.get_nowait()
+                self.callbacks.get_nowait()()
             except queue.Empty:
                 break
-            try:
-                callback()
-            except tk.TclError:
-                if not self.running:
-                    return
-                raise
-        if self.running:
-            self.root.after(self.poll_interval_ms, self._poll)

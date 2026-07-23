@@ -202,6 +202,30 @@ class EmailControllerMixin:
             on_save=lambda recipient_ids: self.save_saved_bid_recipients(saved_bid, recipient_ids),
         )
 
+    def open_keyword_rule_recipients(self, rule_id):
+        config = self.read_config_from_screen()
+        rule = next((row for row in config.keyword_rules if row.get("id") == rule_id), None)
+        if not rule:
+            self.view.show_warning("확인", "수신자를 설정할 감시 조건을 찾지 못했습니다.")
+            return
+        self.email_repository.sync_keyword_rules(config.keyword_rules)
+        self.view.open_keyword_rule_recipient_window(
+            rule=rule,
+            recipients=self.email_repository.list_recipients(),
+            mapped_ids=self.email_repository.get_keyword_rule_recipient_ids(rule_id),
+            on_save=lambda recipient_ids: self.save_keyword_rule_recipients(rule, recipient_ids),
+        )
+
+    def save_keyword_rule_recipients(self, rule, recipient_ids):
+        try:
+            self.email_repository.set_keyword_rule_recipients(rule["id"], recipient_ids)
+            self.log(f"감시 조건 이메일 수신자 변경: {rule.get('name') or rule.get('keyword')} / {len(recipient_ids)}명")
+            return True
+        except Exception as error:
+            self.logger.exception("Could not save keyword-rule recipients.")
+            self.view.show_error("저장 실패", str(error))
+            return False
+
     def save_saved_bid_recipients(self, saved_bid, recipient_ids):
         try:
             self.email_repository.set_saved_bid_recipients(saved_bid.id, recipient_ids)

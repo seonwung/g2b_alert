@@ -169,16 +169,18 @@ def normalize_keyword_rules(source_rules, default_categories=ALL_CATEGORIES):
                 uuid.NAMESPACE_URL,
                 f"g2b-alert:{index}:{operator}:{keyword}:{','.join(categories)}:{','.join(targets)}",
             ).hex
-        normalized.append(
-            {
-                "id": identity,
-                "keyword": keyword,
-                "operator": operator,
-                "categories": categories,
-                "targets": targets or ["bid_lifecycle"],
-                "enabled": bool(rule.get("enabled", True)),
-            }
-        )
+        normalized_rule = {
+            "id": identity,
+            "keyword": keyword,
+            "operator": operator,
+            "categories": categories,
+            "targets": targets or ["bid_lifecycle"],
+            "enabled": bool(rule.get("enabled", True)),
+        }
+        # Preserve legacy round-trips while allowing the new Figma condition name.
+        if "name" in rule:
+            normalized_rule["name"] = str(rule.get("name") or keyword).strip()
+        normalized.append(normalized_rule)
 
     return normalized
 

@@ -7,6 +7,12 @@ python -m PyInstaller ^
   --onefile ^
   --windowed ^
   --collect-all keyring ^
+  --add-data "g2b_alert\assets\icons;g2b_alert\assets\icons" ^
+  --add-data "g2b_alert\assets\Pretendard-1.3.9\LICENSE.txt;g2b_alert\assets\Pretendard-1.3.9" ^
+  --add-data "g2b_alert\assets\Pretendard-1.3.9\public\static\Pretendard-Regular.otf;g2b_alert\assets\Pretendard-1.3.9\public\static" ^
+  --add-data "g2b_alert\assets\Pretendard-1.3.9\public\static\Pretendard-Medium.otf;g2b_alert\assets\Pretendard-1.3.9\public\static" ^
+  --add-data "g2b_alert\assets\Pretendard-1.3.9\public\static\Pretendard-SemiBold.otf;g2b_alert\assets\Pretendard-1.3.9\public\static" ^
+  --add-data "g2b_alert\assets\Pretendard-1.3.9\public\static\Pretendard-Bold.otf;g2b_alert\assets\Pretendard-1.3.9\public\static" ^
   --name g2b_alert ^
   main.py
 

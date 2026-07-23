@@ -29,6 +29,8 @@ class KeywordRules:
 @dataclass(frozen=True)
 class KeywordCondition:
     keyword: str
+    rule_id: str = ""
+    name: str = ""
     operator: str = "or"
     categories: tuple[str, ...] = ("service", "goods", "works", "etc")
     targets: tuple[str, ...] = ("bid_lifecycle",)
@@ -37,6 +39,8 @@ class KeywordCondition:
 @dataclass(frozen=True)
 class KeywordMatch:
     keywords: tuple[str, ...]
+    rule_ids: tuple[str, ...] = ()
+    rule_names: tuple[str, ...] = ()
     notify: bool = True
     track: bool = False
 
@@ -80,6 +84,8 @@ def parse_keyword_condition_rules(rows):
         for keyword in parse_keywords(str(row.get("keyword", "") or "")):
             conditions.append(
                 KeywordCondition(
+                    rule_id=str(row.get("id") or ""),
+                    name=str(row.get("name") or row.get("keyword") or ""),
                     keyword=keyword,
                     operator=operator,
                     categories=categories,
@@ -136,6 +142,8 @@ def match_keyword_rule_details(item, rules, source="bid"):
         return None
     return KeywordMatch(
         keywords=tuple(row.keyword for row in matched),
+        rule_ids=tuple(dict.fromkeys(row.rule_id for row in matched if row.rule_id)),
+        rule_names=tuple(dict.fromkeys(row.name for row in matched if row.name)),
         notify=True,
         track=False,
     )

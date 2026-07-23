@@ -47,6 +47,7 @@ class AppController(
         self.email_repository.sync_keyword_setting(
             self._keyword_setting_text(self.config), self.config.keyword_email_enabled
         )
+        self.email_repository.sync_keyword_rules(self.config.keyword_rules)
         self.initialize_recent_alerts()
 
         initial_state = MainViewState(

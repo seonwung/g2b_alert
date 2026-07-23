@@ -116,6 +116,8 @@ class BidMonitorService:
                 {
                     "bid": bid,
                     "matched_keywords": match["keywords"],
+                    "matched_rule_ids": match.get("rule_ids", []),
+                    "matched_rule_names": match.get("rule_names", []),
                     "notify": match["notify"],
                     "track": match["track"],
                 }
@@ -168,6 +170,8 @@ class BidMonitorService:
                 {
                     "bid": pre_spec,
                     "matched_keywords": match["keywords"],
+                    "matched_rule_ids": match.get("rule_ids", []),
+                    "matched_rule_names": match.get("rule_names", []),
                     "notify": match["notify"],
                     "track": False,
                 }
@@ -190,11 +194,13 @@ class BidMonitorService:
                 "keywords": list(match.keywords),
                 "notify": match.notify,
                 "track": match.track,
+                "rule_ids": list(match.rule_ids),
+                "rule_names": list(match.rule_names),
             }
         matched_keywords = match_keywords(item, keywords)
         if not matched_keywords:
             return None
-        return {"keywords": matched_keywords, "notify": True, "track": False}
+        return {"keywords": matched_keywords, "notify": True, "track": False, "rule_ids": [], "rule_names": []}
 
     @staticmethod
     def _target_enabled(keywords, category, target, fallback=False):

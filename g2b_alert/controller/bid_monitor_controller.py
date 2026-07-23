@@ -208,6 +208,7 @@ class BidMonitorControllerMixin:
         self.email_repository.sync_keyword_setting(
             self._keyword_setting_text(config), config.keyword_email_enabled
         )
+        self.email_repository.sync_keyword_rules(config.keyword_rules)
         self.email_alert_service.update_config(config)
         self.email_delivery_worker.update_config(config)
 
@@ -243,6 +244,7 @@ class BidMonitorControllerMixin:
         for alert in summary["alerts"]:
             bid = alert["bid"]
             keywords = alert["matched_keywords"]
+            rule_ids = alert.get("matched_rule_ids", [])
             if not alert.get("notify", True):
                 continue
             if self.config.windows_notifications_enabled:
@@ -250,9 +252,9 @@ class BidMonitorControllerMixin:
                     "나라장터 새 공고", f"[{bid.category_label}] {bid.title}"
                 )
             if hasattr(bid, "pre_spec_no"):
-                created, count = self.email_alert_service.queue_pre_specification(bid, keywords)
+                created, count = self.email_alert_service.queue_pre_specification(bid, keywords, rule_ids)
             else:
-                created, count = self.email_alert_service.queue_keyword_bid(bid, keywords)
+                created, count = self.email_alert_service.queue_keyword_bid(bid, keywords, rule_ids)
             if created and count:
                 reference = getattr(bid, "pre_spec_no", "") or bid.bid_no
                 self.log(f"이메일 발송 대기: 신규 공고 {reference} / 수신자 {count}명")

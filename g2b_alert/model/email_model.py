@@ -62,8 +62,8 @@ class EmailAlertService:
     def update_config(self, config):
         self.config = config
 
-    def queue_keyword_bid(self, bid, matched_keywords):
-        recipients = self.email_repository.get_keyword_email_recipients()
+    def queue_keyword_bid(self, bid, matched_keywords, rule_ids=()):
+        recipients = self.email_repository.get_keyword_rule_email_recipients(rule_ids)
         subject = f"[나라장터 신규 공고] {bid.title}"
         lines = [
             f"공고명: {bid.title}",
@@ -102,8 +102,8 @@ class EmailAlertService:
             ),
         )
 
-    def queue_pre_specification(self, pre_spec, matched_keywords):
-        recipients = self.email_repository.get_keyword_email_recipients()
+    def queue_pre_specification(self, pre_spec, matched_keywords, rule_ids=()):
+        recipients = self.email_repository.get_keyword_rule_email_recipients(rule_ids)
         subject = f"[사전규격][신규] {pre_spec.title}"
         lines = [
             f"사업명: {pre_spec.title}",

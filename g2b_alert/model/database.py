@@ -151,6 +151,22 @@ class G2BDatabase:
                     FOREIGN KEY(recipient_id) REFERENCES recipients(id)
                 );
 
+                CREATE TABLE IF NOT EXISTS keyword_rule_settings (
+                    rule_id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL DEFAULT '',
+                    recipient_configured INTEGER NOT NULL DEFAULT 0,
+                    updated_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS keyword_rule_recipient_map (
+                    rule_id TEXT NOT NULL,
+                    recipient_id INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY(rule_id, recipient_id),
+                    FOREIGN KEY(rule_id) REFERENCES keyword_rule_settings(rule_id) ON DELETE CASCADE,
+                    FOREIGN KEY(recipient_id) REFERENCES recipients(id)
+                );
+
                 CREATE TABLE IF NOT EXISTS saved_bid_recipient_map (
                     saved_bid_id INTEGER NOT NULL,
                     recipient_id INTEGER NOT NULL,
@@ -221,6 +237,14 @@ class G2BDatabase:
             ):
                 if column not in recipient_columns:
                     connection.execute(f"ALTER TABLE recipients ADD COLUMN {column} {definition}")
+            keyword_rule_columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(keyword_rule_settings)").fetchall()
+            }
+            if "recipient_configured" not in keyword_rule_columns:
+                connection.execute(
+                    "ALTER TABLE keyword_rule_settings ADD COLUMN recipient_configured INTEGER NOT NULL DEFAULT 0"
+                )
             saved_bid_columns = {
                 row["name"] for row in connection.execute("PRAGMA table_info(saved_bids)").fetchall()
             }
