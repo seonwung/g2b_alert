@@ -90,7 +90,7 @@ class BidRepository:
             ).rowcount
         return seen + state
 
-    def save_bid(self, bid: Bid):
+    def save_bid(self, bid: Bid, existing_saved_id=None):
         saved_at = self._now_text()
         bid_ord = bid.bid_ord or ""
         raw_json = json.dumps(bid.raw or {}, ensure_ascii=False)
@@ -112,6 +112,49 @@ class BidRepository:
             "updated_at": saved_at,
         }
         with self.connect() as connection:
+            if existing_saved_id is not None:
+                tracked = connection.execute(
+                    """
+                    SELECT id, bid_pbanc_ord
+                    FROM saved_bids
+                    WHERE id = ? AND bid_pbanc_no = ?
+                    """,
+                    (existing_saved_id, bid.bid_no),
+                ).fetchone()
+                if not tracked:
+                    # A background result cycle may finish after the user has
+                    # deleted this saved notice. Never recreate it from the
+                    # stale cycle snapshot.
+                    return None, False
+
+                saved_bid_id = tracked["id"]
+                current_order = tracked["bid_pbanc_ord"] or ""
+                if bid_ord == current_order:
+                    self._update_saved_bid(
+                        connection, saved_bid_id, values, include_order=False
+                    )
+                    self._record_notice_version(
+                        connection, saved_bid_id, values, is_current=True
+                    )
+                    return saved_bid_id, False
+
+                is_newer = self._is_newer_order(bid_ord, current_order)
+                if is_newer:
+                    connection.execute(
+                        "UPDATE notice_versions SET is_current = 0 WHERE saved_bid_id = ?",
+                        (saved_bid_id,),
+                    )
+                    self._update_saved_bid(
+                        connection, saved_bid_id, values, include_order=True
+                    )
+                self._record_notice_version(
+                    connection,
+                    saved_bid_id,
+                    values,
+                    is_current=is_newer,
+                )
+                return saved_bid_id, False
+
             existing = connection.execute(
                 "SELECT id FROM saved_bids WHERE bid_pbanc_no = ? AND bid_pbanc_ord = ?",
                 (bid.bid_no, bid_ord),
@@ -155,13 +198,13 @@ class BidRepository:
                     bid_pbanc_no, bid_pbanc_ord, category, bid_name, organization_name,
                     demand_organization_name, bid_method, contract_method, budget_amount,
                     bid_start_datetime, bid_end_datetime, opening_datetime, detail_url,
-                    raw_json, saved_at, updated_at
+                    raw_json, saved_at, updated_at, monitoring_enabled
                 )
                 VALUES (
                     :bid_pbanc_no, :bid_pbanc_ord, :category, :bid_name, :organization_name,
                     :demand_organization_name, :bid_method, :contract_method, :budget_amount,
                     :bid_start_datetime, :bid_end_datetime, :opening_datetime, :detail_url,
-                    :raw_json, :saved_at, :updated_at
+                    :raw_json, :saved_at, :updated_at, 0
                 )
                 """,
                 values,
@@ -462,9 +505,16 @@ class BidRepository:
             connection.execute("DELETE FROM saved_bids WHERE id = ?", (saved_bid_id,))
 
     def set_monitoring_enabled(self, saved_bid_id, enabled):
+        self.set_monitoring_enabled_many([saved_bid_id], enabled)
+
+    def set_monitoring_enabled_many(self, saved_bid_ids, enabled):
+        saved_bid_ids = [int(saved_bid_id) for saved_bid_id in saved_bid_ids]
+        if not saved_bid_ids:
+            return
+        placeholders = ", ".join("?" for _ in saved_bid_ids)
         with self.connect() as connection:
             connection.execute(
-                """
+                f"""
                 UPDATE saved_bids
                 SET monitoring_enabled = ?,
                     status = CASE
@@ -472,14 +522,14 @@ class BidRepository:
                         ELSE status
                     END,
                     updated_at = ?
-                WHERE id = ?
+                WHERE id IN ({placeholders})
                 """,
-                (
+                [
                     1 if enabled else 0,
                     1 if enabled else 0,
                     self._now_text(),
-                    saved_bid_id,
-                ),
+                    *saved_bid_ids,
+                ],
             )
 
     def update_result_check_time(self, saved_bid_id, result_found=False):

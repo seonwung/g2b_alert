@@ -69,8 +69,13 @@ class BidMonitorControllerMixin:
             smtp_sender_name=self.config.smtp_sender_name,
         )
 
-    def get_validated_monitor_inputs(self, warn_api_volume=True, include_all_rules=False):
-        config = self.read_config_from_screen()
+    def get_validated_monitor_inputs(
+        self,
+        warn_api_volume=True,
+        include_all_rules=False,
+        config_override=None,
+    ):
+        config = config_override or self.read_config_from_screen()
         if include_all_rules and config.keyword_rules:
             rows = [{**row, "enabled": True} for row in config.keyword_rules]
             categories = [
@@ -150,27 +155,56 @@ class BidMonitorControllerMixin:
             )
         return BidMonitorService(api, self.bid_repository, pre_spec_api=pre_spec_api)
 
-    def start(self, enable_all=True, warn_api_volume=True):
+    def start(
+        self,
+        enable_all=True,
+        warn_api_volume=True,
+        config_override=None,
+        bootstrap_first_check=False,
+    ):
+        previous_config = self.read_config_from_screen()
+        candidate_config = config_override or previous_config
         if enable_all:
-            self.view.set_all_keyword_monitoring(True)
-        validated = self.get_validated_monitor_inputs(warn_api_volume)
+            candidate_config = self._config_with_monitoring_states(
+                candidate_config,
+                {
+                    rule["id"]: True
+                    for rule in candidate_config.keyword_rules
+                    if rule.get("keyword")
+                },
+            )
+        validated = self.get_validated_monitor_inputs(
+            warn_api_volume,
+            config_override=candidate_config,
+        )
         if not validated:
-            if enable_all:
-                self.view.set_all_keyword_monitoring(False)
             return False
         config, keywords, interval, estimated_calls = validated
+        if enable_all:
+            self.view.set_all_keyword_monitoring(True)
         self._apply_monitor_config(config)
+        if self.scheduler and self.scheduler.running:
+            self.scheduler.update(
+                config,
+                keywords,
+                lambda: self._make_bid_service(config),
+            )
+            self.view.update_running_ui(True)
+            self._update_monitor_summary(config, keywords)
+            self.log("감시 조건 갱신")
+            return True
         self.scheduler = BidMonitorWorker(
             config,
             keywords,
             lambda: self._make_bid_service(config),
             self._handle_bid_check_complete,
             self._handle_bid_check_error,
+            bootstrap_first_check=bootstrap_first_check,
         )
         if not self.scheduler.start():
             self.view.show_warning("확인", "이전 감시 작업이 아직 종료 중입니다.")
-            if enable_all:
-                self.view.set_all_keyword_monitoring(False)
+            self._restore_keyword_monitoring_states(previous_config)
+            self._apply_monitor_config(previous_config)
             return False
         self.view.update_running_ui(True)
         self._update_monitor_summary(config, keywords)
@@ -178,13 +212,44 @@ class BidMonitorControllerMixin:
         self.set_status("감시 중")
         self.log("감시 시작")
         self.log(
-            "키워드: "
+            "키워드 카드 간 OR: "
             f"AND [{', '.join(keywords.and_keywords) or '-'}] / "
             f"OR [{', '.join(keywords.or_keywords) or '-'}] / "
             f"제외 [{', '.join(keywords.exclude_keywords) or '-'}]"
         )
         self.log(f"키워드 감시 주기: {interval}분 / 예상 API 호출: 하루 약 {estimated_calls:,}회")
         return True
+
+    @staticmethod
+    def _config_with_monitoring_states(config, states):
+        rows = [
+            {
+                **rule,
+                "enabled": bool(states.get(rule.get("id"), rule.get("enabled", False))),
+            }
+            for rule in config.keyword_rules
+        ]
+        active_rules = [rule for rule in rows if rule.get("enabled", False)]
+        categories = [
+            category
+            for category in CATEGORY_LABELS
+            if any(category in rule.get("categories", []) for rule in active_rules)
+        ]
+        return replace(
+            config,
+            keyword_rules=rows,
+            selected_categories=categories,
+            prespec_search_enabled=any(
+                "prespec" in rule.get("targets", []) for rule in active_rules
+            ),
+        )
+
+    def _restore_keyword_monitoring_states(self, config):
+        for rule in config.keyword_rules:
+            self.view.set_keyword_monitoring(
+                rule["id"],
+                bool(rule.get("enabled", False)),
+            )
 
     def resume_keyword_monitoring_if_needed(self):
         config = self.read_config_from_screen()
@@ -324,17 +389,21 @@ class BidMonitorControllerMixin:
         threading.Thread(target=run_check, daemon=True, name="manual-bid-check").start()
 
     def set_keyword_rule_monitoring(self, rule, enabled, on_finished):
-        full_config = self.read_config_from_screen()
+        previous_config = self.read_config_from_screen()
+        full_config = self._config_with_monitoring_states(
+            previous_config,
+            {rule["id"]: enabled},
+        )
         if enabled and not full_config.api_key:
             self.view.show_warning("확인", "API 키를 입력해 주세요.")
-            self.view.set_keyword_monitoring(rule["id"], False)
             on_finished()
             return
-        self._apply_monitor_config(full_config)
         all_rules = self._parse_monitor_rules(full_config)
         running = bool(self.scheduler and self.scheduler.running)
 
         if not enabled:
+            self.view.set_keyword_monitoring(rule["id"], False)
+            self._apply_monitor_config(full_config)
             if running and all_rules.positive_keywords:
                 self.scheduler.update(
                     full_config,
@@ -349,12 +418,17 @@ class BidMonitorControllerMixin:
             return
 
         if not running:
-            if not self.start(enable_all=False):
-                self.view.set_keyword_monitoring(rule["id"], False)
-                self.keyword_rules_changed()
+            if self.start(
+                enable_all=False,
+                config_override=full_config,
+                bootstrap_first_check=True,
+            ):
+                self.view.set_keyword_monitoring(rule["id"], True)
             on_finished()
             return
 
+        self.view.set_keyword_monitoring(rule["id"], True)
+        self._apply_monitor_config(full_config)
         self.scheduler.update(
             full_config,
             all_rules,
@@ -435,7 +509,7 @@ class BidMonitorControllerMixin:
         labels = [CATEGORY_LABELS.get(category, category) for category in config.selected_categories]
         if keywords.positive_keywords and labels:
             text = (
-                f"감시 조건: AND {len(keywords.and_keywords)}개 · "
+                f"감시 조건: 카드 간 OR · AND {len(keywords.and_keywords)}개 · "
                 f"OR {len(keywords.or_keywords)}개 · 제외 {len(keywords.exclude_keywords)}개 / "
                 f"{', '.join(labels)} / "
                 f"{config.interval}분마다 / 윈도우 알림 {'ON' if config.windows_notifications_enabled else 'OFF'}"

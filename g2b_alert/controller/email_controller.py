@@ -44,8 +44,11 @@ class EmailControllerMixin:
             history_data=self.get_email_history(),
             on_save=self.save_email_settings,
             on_refresh_history=self.get_email_history,
+            on_clear_history=self.clear_email_history,
             on_test_connection=self.test_smtp_connection,
             on_send_test=self.send_smtp_test,
+            on_register_recipient=self.register_common_email_recipient,
+            on_delete_recipient=self.delete_common_email_recipient,
         )
 
     def _smtp_password_state(self, username):
@@ -57,6 +60,43 @@ class EmailControllerMixin:
         except CredentialStoreError as error:
             return f"Windows 자격 증명: 확인 불가 ({error})"
         return "Windows 자격 증명: 앱 비밀번호 저장됨" if saved else "Windows 자격 증명: 앱 비밀번호 없음"
+
+    def register_common_email_recipient(self, recipient):
+        try:
+            name = str(recipient.get("name") or "").strip()
+            email = str(recipient.get("email") or "").strip().lower()
+            organization = str(recipient.get("organization") or "").strip()
+            if not name or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+                raise ValueError("수신자 이름과 올바른 이메일주소를 입력해 주세요.")
+            recipient_id = self.email_repository.save_recipient(
+                name,
+                email,
+                organization=organization,
+            )
+            self.log(f"공통 이메일 수신자 등록: {name} / {email}")
+            return {
+                "ok": True,
+                "recipient": {
+                    "id": recipient_id,
+                    "name": name,
+                    "email": email,
+                    "organization": organization,
+                    "memo": "",
+                    "is_default": False,
+                },
+            }
+        except Exception as error:
+            self.logger.exception("Could not register common email recipient.")
+            return {"ok": False, "error": str(error)}
+
+    def delete_common_email_recipient(self, recipient_id):
+        try:
+            self.email_repository.deactivate_recipient(recipient_id)
+            self.log(f"공통 이메일 수신자 삭제: {recipient_id}")
+            return {"ok": True}
+        except Exception as error:
+            self.logger.exception("Could not delete common email recipient.")
+            return {"ok": False, "error": str(error)}
 
     def save_email_settings(self, payload):
         try:
@@ -122,6 +162,19 @@ class EmailControllerMixin:
             "summary": self.email_repository.get_email_delivery_summary(),
             "rows": self.email_repository.list_recent_email_deliveries(50),
         }
+
+    def clear_email_history(self):
+        try:
+            deleted = self.email_repository.clear_email_delivery_history()
+            self.log(f"이메일 발송 완료 기록 삭제: {deleted}건")
+            return {
+                "ok": True,
+                "deleted": deleted,
+                "history": self.get_email_history(),
+            }
+        except Exception as error:
+            self.logger.exception("Could not clear email delivery history.")
+            return {"ok": False, "error": str(error)}
 
     def test_smtp_connection(self, payload, on_complete):
         self._run_smtp_test(payload, on_complete, send_mail=False)

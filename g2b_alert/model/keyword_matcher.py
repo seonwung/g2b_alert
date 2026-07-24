@@ -34,6 +34,7 @@ class KeywordCondition:
     operator: str = "or"
     categories: tuple[str, ...] = ("service", "goods", "works", "etc")
     targets: tuple[str, ...] = ("bid_lifecycle",)
+    group_key: str = ""
 
 
 @dataclass(frozen=True)
@@ -55,12 +56,14 @@ def parse_keyword_rules(and_text="", or_text="", exclude_text=""):
 
 def parse_keyword_condition_rules(rows):
     conditions = []
-    for row in rows or []:
-        if not bool(row.get("enabled", True)):
+    for row_index, row in enumerate(rows or []):
+        if not bool(row.get("enabled", False)):
             continue
         operator = str(row.get("operator", "or") or "or").lower()
         if operator not in {"and", "or", "exclude"}:
             operator = "or"
+        rule_id = str(row.get("id") or "")
+        group_key = rule_id or f"condition-card-{row_index}"
         categories = row.get("categories")
         if not isinstance(categories, (list, tuple)):
             legacy_category = str(row.get("category", "all") or "all").lower()
@@ -84,7 +87,8 @@ def parse_keyword_condition_rules(rows):
         for keyword in parse_keywords(str(row.get("keyword", "") or "")):
             conditions.append(
                 KeywordCondition(
-                    rule_id=str(row.get("id") or ""),
+                    rule_id=rule_id,
+                    group_key=group_key,
                     name=str(row.get("name") or row.get("keyword") or ""),
                     keyword=keyword,
                     operator=operator,
@@ -131,13 +135,27 @@ def match_keyword_rule_details(item, rules, source="bid"):
     if any(normalize(row.keyword) in search_text for row in excluded):
         return None
 
-    and_rows = [row for row in applicable if row.operator == "and"]
-    or_rows = [row for row in applicable if row.operator == "or"]
-    matched_and = [row for row in and_rows if normalize(row.keyword) in search_text]
-    matched_or = [row for row in or_rows if normalize(row.keyword) in search_text]
-    if len(matched_and) != len(and_rows) or (or_rows and not matched_or):
-        return None
-    matched = matched_and + matched_or
+    positive_groups = {}
+    for row_index, row in enumerate(applicable):
+        if row.operator not in {"and", "or"}:
+            continue
+        group_key = row.group_key or row.rule_id or f"condition-card-{row_index}"
+        positive_groups.setdefault(group_key, []).append(row)
+
+    matched = []
+    for group in positive_groups.values():
+        group_matches = [
+            row for row in group if normalize(row.keyword) in search_text
+        ]
+        operator = group[0].operator
+        group_satisfied = (
+            len(group_matches) == len(group)
+            if operator == "and"
+            else bool(group_matches)
+        )
+        if group_satisfied:
+            matched.extend(group_matches)
+
     if not matched:
         return None
     return KeywordMatch(

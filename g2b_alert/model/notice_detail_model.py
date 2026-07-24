@@ -1,5 +1,114 @@
 import re
 
+from .notice_version_model import compare_latest_versions
+
+
+def format_amount(value):
+    """Format a numeric amount with thousands separators."""
+    text = str(value or "").strip()
+    if not text:
+        return "-"
+    suffix = ""
+    if text.endswith("원"):
+        text = text[:-1].strip()
+        suffix = "원"
+    normalized = text.replace(",", "").replace(" ", "")
+    if re.fullmatch(r"[+-]?\d+", normalized):
+        return f"{int(normalized):,}{suffix}"
+    if re.fullmatch(r"[+-]?\d+\.\d+", normalized):
+        integer, fraction = normalized.split(".", 1)
+        return f"{int(integer):,}.{fraction}{suffix}"
+    return str(value)
+
+
+def format_datetime(value):
+    """Return a compact, human-readable date/time without ISO's T separator."""
+    text = str(value or "").strip()
+    if not text:
+        return "-"
+    iso_match = re.match(
+        r"^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?",
+        text,
+    )
+    if iso_match:
+        year, month, day, hour, minute = iso_match.groups()
+        if hour is not None:
+            return f"{year}-{month}-{day} {hour}:{minute}"
+        return f"{year}-{month}-{day}"
+    compact = re.sub(r"\D", "", text)
+    if len(compact) >= 12:
+        return (
+            f"{compact[:4]}-{compact[4:6]}-{compact[6:8]} "
+            f"{compact[8:10]}:{compact[10:12]}"
+        )
+    if len(compact) == 8:
+        return f"{compact[:4]}-{compact[4:6]}-{compact[6:8]}"
+    return text.replace("T", " ")
+
+
+def format_product_details(value):
+    """Turn G2B's caret-delimited product list into readable lines."""
+    text = str(value or "").strip()
+    if not text or text == "-":
+        return "-"
+    records = re.findall(r"\[([^\]]+)\]", text)
+    if not records:
+        records = [
+            item
+            for item in re.split(r"\^{2,}|\r?\n", text)
+            if item.strip()
+        ]
+    lines = []
+    for record in records:
+        fields = [
+            field.strip(" []")
+            for field in str(record).split("^")
+            if field.strip(" []")
+        ]
+        if len(fields) >= 3 and fields[0].isdigit():
+            sequence, product_number = fields[0], fields[1]
+            product_name = " · ".join(fields[2:])
+            line = f"{sequence}. {product_name}"
+            if product_number:
+                line += f" (품목번호 {product_number})"
+            lines.append(line)
+        else:
+            cleaned = " · ".join(fields)
+            if cleaned:
+                lines.append(cleaned)
+    return "\n".join(lines) or text.replace("^", " · ")
+
+
+def _format_comparison_values(comparison):
+    amount_tokens = ("금액", "가격", "예산", "추정가")
+    date_tokens = ("일시", "일자", "마감", "시작", "종료")
+    formatted = dict(comparison or {})
+    formatted["changes"] = [
+        {
+            **change,
+            "before": (
+                format_amount(change.get("before"))
+                if any(token in str(change.get("label", "")) for token in amount_tokens)
+                else (
+                    format_datetime(change.get("before"))
+                    if any(token in str(change.get("label", "")) for token in date_tokens)
+                    else change.get("before")
+                )
+            ),
+            "after": (
+                format_amount(change.get("after"))
+                if any(token in str(change.get("label", "")) for token in amount_tokens)
+                else (
+                    format_datetime(change.get("after"))
+                    if any(token in str(change.get("label", "")) for token in date_tokens)
+                    else change.get("after")
+                )
+            ),
+        }
+        for change in (comparison or {}).get("changes", [])
+    ]
+    return formatted
+
 
 def build_notice_detail(
     saved_bid,
@@ -32,8 +141,11 @@ def build_notice_detail(
         ("참조번호", _first(current_raw, "refNo")),
         ("공고기관", saved_bid.agency),
         ("수요기관", saved_bid.demand_agency),
-        ("사업금액", saved_bid.budget_amount),
-        ("품목상세", _first(current_raw, "prdctDtlList")),
+        ("사업금액", format_amount(saved_bid.budget_amount)),
+        (
+            "품목상세",
+            format_product_details(_first(current_raw, "prdctDtlList")),
+        ),
         ("담당자", _first(current_raw, "ofclNm")),
         ("담당자 연락처", _first(current_raw, "ofclTelNo")),
         ("관련 입찰공고번호", _first(current_raw, "bidNtceNoList")),
@@ -41,44 +153,55 @@ def build_notice_detail(
         ("입찰방식", saved_bid.bid_method),
         ("추적 상태", "추적 중" if saved_bid.monitoring_enabled else "중지"),
         ("이메일 수신자", f"{recipient_count}명"),
-        ("저장일시", saved_bid.saved_at),
+        ("저장일시", format_datetime(saved_bid.saved_at)),
     ]
     schedule_rows = [
-        ("사전규격 공개일시", _first(current_raw, "rgstDt", "bfSpecRgstDt")),
-        ("접수일시", _first(current_raw, "rcptDt")),
-        ("의견 제출 시작", saved_bid.bid_start_datetime),
+        ("사전규격 공개일시", format_datetime(_first(current_raw, "rgstDt", "bfSpecRgstDt"))),
+        ("접수일시", format_datetime(_first(current_raw, "rcptDt"))),
+        ("의견 제출 시작", format_datetime(saved_bid.bid_start_datetime)),
         (
             "의견 제출 마감",
-            _first(
-                current_raw,
-                "opninRgstClseDt",
-                "opnnSbmsnClseDt",
-                "bfSpecOpnnClseDt",
-            )
-            if is_pre_spec
-            else saved_bid.bid_end_datetime,
+            format_datetime(
+                _first(
+                    current_raw,
+                    "opninRgstClseDt",
+                    "opnnSbmsnClseDt",
+                    "bfSpecOpnnClseDt",
+                )
+                if is_pre_spec
+                else saved_bid.bid_end_datetime
+            ),
         ),
-        ("납품기한", _first(current_raw, "dlvrTmlmtDt")),
+        ("납품기한", format_datetime(_first(current_raw, "dlvrTmlmtDt"))),
         ("납품일수", _first(current_raw, "dlvrDaynum")),
     ] if is_pre_spec else [
-        ("입찰서 제출 시작", saved_bid.bid_start_datetime),
-        ("입찰서 제출 마감", saved_bid.bid_end_datetime),
+        ("입찰서 제출 시작", format_datetime(saved_bid.bid_start_datetime)),
+        ("입찰서 제출 마감", format_datetime(saved_bid.bid_end_datetime)),
         (
             "제안서 제출 마감",
-            _first(current_raw, "prpslDocRcptEndDt", "prpslEndDt", "presntnOprtnDt"),
+            format_datetime(
+                _first(
+                    current_raw,
+                    "prpslDocRcptEndDt",
+                    "prpslEndDt",
+                    "presntnOprtnDt",
+                )
+            ),
         ),
         (
             "공동수급협정서 마감",
-            current_version.get("consortium_close_at")
-            or _first(
-                current_raw,
-                "cmmnSpldmdAgrmntClseDt",
-                "cmmnSpldmdAgrmntDocRcptDt",
+            format_datetime(
+                current_version.get("consortium_close_at")
+                or _first(
+                    current_raw,
+                    "cmmnSpldmdAgrmntClseDt",
+                    "cmmnSpldmdAgrmntDocRcptDt",
+                )
             ),
         ),
-        ("개찰일시", saved_bid.opening_datetime),
+        ("개찰일시", format_datetime(saved_bid.opening_datetime)),
         ("개찰장소", _first(current_raw, "opengPlce", "opengPlace")),
-        ("공고 등록일시", _first(current_raw, "rgstDt", "bidNtceDt")),
+        ("공고 등록일시", format_datetime(_first(current_raw, "rgstDt", "bidNtceDt"))),
     ]
     main_kind = "사전규격 첨부" if is_pre_spec else "공고 첨부"
     attachments = [
@@ -104,7 +227,7 @@ def build_notice_detail(
         "schedule_rows": schedule_rows,
         "opinion_summary_rows": [
             ("사전규격등록번호", getattr(saved_bid, "pre_spec_no", "")),
-            ("의견 제출 마감", _first(current_raw, "opninRgstClseDt")),
+            ("의견 제출 마감", format_datetime(_first(current_raw, "opninRgstClseDt"))),
             ("등록된 의견", f"{len(opinions)}건"),
         ],
         "opinions": opinions,
@@ -113,17 +236,23 @@ def build_notice_detail(
                 "status": result.get("result_status") or "-",
                 "company": result.get("successful_bidder_name") or "-",
                 "business_number": result.get("business_number") or "-",
-                "amount": result.get("successful_bid_amount") or "-",
+                "amount": format_amount(result.get("successful_bid_amount")),
                 "rate": result.get("successful_bid_rate") or "-",
                 "ranking": result.get("ranking") or "-",
-                "opening_at": result.get("opening_datetime") or "-",
-                "detected_at": result.get("detected_at") or "-",
+                "opening_at": format_datetime(result.get("opening_datetime")),
+                "detected_at": format_datetime(result.get("detected_at")),
             }
             for result in results
         ],
         "attachments": attachments,
         "versions": versions,
-        "comparison": comparison,
+        "version_comparisons": [
+            _format_comparison_values(
+                compare_latest_versions(versions[: index + 1])
+            )
+            for index in range(len(versions))
+        ],
+        "comparison": _format_comparison_values(comparison),
     }
 
 

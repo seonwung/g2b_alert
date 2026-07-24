@@ -273,30 +273,51 @@ class EmailRepository:
                 """,
                 (event_key, event_type, source_ref, subject, body, body_html or "", current),
             )
-            if cursor.rowcount == 0:
-                return False, 0
-            event_id = cursor.lastrowid
+            event_created = cursor.rowcount > 0
+            if event_created:
+                event_id = cursor.lastrowid
+            else:
+                existing = connection.execute(
+                    "SELECT id FROM email_events WHERE event_key = ?",
+                    (event_key,),
+                ).fetchone()
+                if not existing:
+                    return False, 0
+                event_id = existing["id"]
             delivery_rows = [
                 (
                     event_id,
                     recipient["id"],
                     recipient["name"],
                     recipient["email"],
+                    subject,
+                    body,
+                    body_html or "",
                     current,
                     current,
                 )
                 for recipient in recipients
             ]
+            delivery_count_before = connection.execute(
+                "SELECT COUNT(*) AS count FROM email_deliveries WHERE event_id = ?",
+                (event_id,),
+            ).fetchone()["count"]
             connection.executemany(
                 """
-                INSERT INTO email_deliveries (
+                INSERT OR IGNORE INTO email_deliveries (
                     event_id, recipient_id, recipient_name, recipient_email,
+                    subject, body, body_html,
                     status, retry_count, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, 'pending', 0, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)
                 """,
                 delivery_rows,
             )
-            return True, len(delivery_rows)
+            delivery_count_after = connection.execute(
+                "SELECT COUNT(*) AS count FROM email_deliveries WHERE event_id = ?",
+                (event_id,),
+            ).fetchone()["count"]
+            added_count = delivery_count_after - delivery_count_before
+            return event_created or added_count > 0, added_count
 
     def reset_interrupted_email_deliveries(self):
         with self.connect() as connection:
@@ -314,7 +335,11 @@ class EmailRepository:
         with self.connect() as connection:
             row = connection.execute(
                 """
-                SELECT d.*, e.event_key, e.event_type, e.subject, e.body, e.body_html
+                SELECT
+                    COALESCE(NULLIF(d.subject, ''), e.subject) AS subject,
+                    COALESCE(NULLIF(d.body, ''), e.body) AS body,
+                    COALESCE(NULLIF(d.body_html, ''), e.body_html) AS body_html,
+                    d.*, e.event_key, e.event_type
                 FROM email_deliveries d
                 JOIN email_events e ON e.id = d.event_id
                 WHERE d.status = 'pending'
@@ -403,3 +428,14 @@ class EmailRepository:
                 """,
                 (int(limit),),
             ).fetchall()
+
+    def clear_email_delivery_history(self):
+        """Remove completed delivery logs without cancelling queued email."""
+        with self.connect() as connection:
+            cursor = connection.execute(
+                """
+                DELETE FROM email_deliveries
+                WHERE status IN ('sent', 'failed')
+                """
+            )
+            return cursor.rowcount

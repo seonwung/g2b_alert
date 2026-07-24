@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QEvent, QItemSelectionModel, Qt, QTimer
 from PySide6.QtGui import QBrush, QCloseEvent, QColor
 from PySide6.QtWidgets import (
     QApplication, QFrame, QHBoxLayout, QLabel, QMainWindow, QMessageBox,
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..presentation.contracts import MainViewState, ViewActionsProtocol
+from ..model.notice_detail_model import format_amount
 from .dialogs import EmailSettingsDialog, NoticeDetailDialog, VersionHistoryDialog
 from .qt_common import button
 from .screens import (
@@ -94,6 +95,11 @@ class MainView(QMainWindow):
         self.stack = QStackedWidget()
         self.keyword_page = KeywordMonitorPage(self.actions, self.initial_state, self._open_keyword_recipients)
         self.saved_page = SavedBidsPage(self.actions, self.initial_state)
+        self._saved_double_click_selection_ids = []
+        self.saved_page.table.viewport().installEventFilter(self)
+        self.saved_page.table.cellDoubleClicked.connect(
+            self._saved_bid_double_clicked
+        )
         self.log_page = LogPage(self.actions)
         self.settings_page = SettingsPage(self.actions, self.initial_state)
         for page in (self.keyword_page, self.saved_page, self.log_page, self.settings_page):
@@ -276,25 +282,128 @@ class MainView(QMainWindow):
         for index, row in enumerate(rows):
             self.saved_bid_rows[index] = row
             reference = row.pre_spec_no if row.pre_spec_no and row.status == "pre_spec" else f"{row.bid_no}-{row.bid_ord or '000'}"
-            values = (row.stage_label(), "ON" if row.monitoring_enabled else "OFF", reference, row.title, getattr(row, "category_label", row.category), row.demand_agency, self._short_datetime(row.bid_end_datetime), self._short_datetime(row.opening_datetime), row.progress_status())
+            values = (
+                row.stage_label(),
+                "ON" if row.monitoring_enabled else "OFF",
+                reference,
+                row.title,
+                getattr(row, "category_label", row.category),
+                row.demand_agency,
+                format_amount(row.budget_amount),
+                row.progress_status(),
+            )
             stage_color = STAGE_COLORS.get(str(values[0]))
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value or "-"))
+                if column in {2, 3, 5, 6}:
+                    item.setToolTip(str(value or "-"))
                 if stage_color:
                     item.setBackground(QBrush(QColor(stage_color)))
                 if column == 0:
-                    item.setForeground(QBrush(QColor("#2F343B")))
+                    if values[0] == "사전규격":
+                        item.setForeground(QBrush(QColor("#08745A")))
+                        stage_font = item.font()
+                        stage_font.setBold(True)
+                        item.setFont(stage_font)
+                    else:
+                        item.setForeground(QBrush(QColor("#2F343B")))
                 self.saved_page.table.setItem(index, column, item)
 
     def select_saved_bid(self, saved_id):
+        self.select_saved_bids([saved_id])
+
+    def select_saved_bids(self, saved_ids):
+        wanted = set(saved_ids or [])
+        table = self.saved_page.table
+        table.clearSelection()
+        selection_model = table.selectionModel()
+        first_index = None
         for row_index, row in self.saved_bid_rows.items():
-            if row.id == saved_id:
-                self.saved_page.table.selectRow(row_index)
-                break
+            if row.id in wanted:
+                index = table.model().index(row_index, 0)
+                selection_model.select(
+                    index,
+                    QItemSelectionModel.SelectionFlag.Select
+                    | QItemSelectionModel.SelectionFlag.Rows,
+                )
+                if first_index is None:
+                    first_index = index
+        if first_index is not None:
+            selection_model.setCurrentIndex(
+                first_index,
+                QItemSelectionModel.SelectionFlag.NoUpdate,
+            )
 
     def get_selected_saved_bid(self):
         row = self.saved_page.table.currentRow()
         return self.saved_bid_rows.get(row)
+
+    def get_selected_saved_bids(self):
+        selected_rows = sorted(
+            {index.row() for index in self.saved_page.table.selectionModel().selectedRows()}
+        )
+        return [
+            self.saved_bid_rows[row_index]
+            for row_index in selected_rows
+            if row_index in self.saved_bid_rows
+        ]
+
+    def _saved_bid_double_clicked(self, row_index, column):
+        modifiers = QApplication.keyboardModifiers()
+        if modifiers & (
+            Qt.KeyboardModifier.ControlModifier
+            | Qt.KeyboardModifier.ShiftModifier
+        ):
+            return
+        row = self.saved_bid_rows.get(row_index)
+        if row:
+            if (
+                len(self._saved_double_click_selection_ids) > 1
+                and row.id in self._saved_double_click_selection_ids
+            ):
+                self.select_saved_bids(
+                    self._saved_double_click_selection_ids
+                )
+            self._saved_double_click_selection_ids = []
+            if column == 1:
+                self.actions.set_saved_bid_monitoring(
+                    row,
+                    not row.monitoring_enabled,
+                )
+            else:
+                self.actions.show_saved_bid_detail()
+
+    def eventFilter(self, watched, event):
+        table = getattr(getattr(self, "saved_page", None), "table", None)
+        if (
+            table is not None
+            and watched is table.viewport()
+            and event.type() == QEvent.Type.MouseButtonPress
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            index = table.indexAt(event.position().toPoint())
+            modifiers = event.modifiers()
+            if (
+                index.isValid()
+                and not modifiers
+                & (
+                    Qt.KeyboardModifier.ControlModifier
+                    | Qt.KeyboardModifier.ShiftModifier
+                )
+            ):
+                clicked = self.saved_bid_rows.get(index.row())
+                selected = self.get_selected_saved_bids()
+                if (
+                    clicked is not None
+                    and len(selected) > 1
+                    and any(row.id == clicked.id for row in selected)
+                ):
+                    self._saved_double_click_selection_ids = [
+                        row.id for row in selected
+                    ]
+                else:
+                    self._saved_double_click_selection_ids = []
+        return super().eventFilter(watched, event)
 
     def get_result_interval_text(self): return self.saved_page.result_interval.text().strip()
     def set_saved_monitor_status(self, text): self.saved_page.monitor_status.setText(text)
@@ -314,20 +423,33 @@ class MainView(QMainWindow):
 
     def show_saved_bid_detail(self, detail):
         dialog = NoticeDetailDialog(detail, self.actions.open_link, self)
+        self._cascade_dialog(dialog)
         self._track_dialog(dialog)
         dialog.show()
         return dialog
 
-    def show_notice_version_history(self, row, versions, comparison):
-        dialog = VersionHistoryDialog(row, versions, comparison, self)
+    def show_notice_version_history(self, row, versions, comparisons):
+        dialog = VersionHistoryDialog(row, versions, comparisons, self)
+        self._cascade_dialog(dialog)
         self._track_dialog(dialog)
         dialog.show()
+
+    def _cascade_dialog(self, dialog):
+        offset = (len(self.dialogs) % 8) * 28
+        dialog.move(
+            self.frameGeometry().x() + 70 + offset,
+            self.frameGeometry().y() + 70 + offset,
+        )
 
     # RecentAlertViewProtocol
     def add_recent_alert(self, item_id, bid, keywords):
         table = self.keyword_page.alert_table
         table.insertRow(0)
-        values = (datetime.now().strftime("%H:%M"), bid.category_label, bid.title, self._format_keyword_summary(keywords), "열기" if bid.link else "-")
+        values = (
+            bid.title,
+            self._format_keyword_summary(keywords),
+            "열기" if bid.link else "-",
+        )
         for column, value in enumerate(values):
             item = QTableWidgetItem(str(value))
             if column == 0:

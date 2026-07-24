@@ -4,8 +4,7 @@ from urllib.parse import parse_qs, parse_qsl, unquote, urlencode, urlparse, urlu
 
 import requests
 
-from .bid_api import parse_items, parse_total_count
-from .http_client import request_json
+from .bid_api import fetch_all_pages
 from ..model.entities import PreSpecification
 
 
@@ -44,14 +43,19 @@ class PreSpecificationApi:
             "inqryEndDt": end_time.strftime("%Y%m%d%H%M"),
             "type": "json",
         }
-        data = request_json(
+        items, self.last_total_count = fetch_all_pages(
             BASE_URL + endpoint,
             params,
             self.timeout_seconds,
             "나라장터 사전규격 API",
         )
-        self.last_total_count = parse_total_count(data)
-        return [self._normalize(category, item) for item in parse_items(data)]
+        pre_specs = [self._normalize(category, item) for item in items]
+        return list(
+            {
+                pre_spec.unique_id: pre_spec
+                for pre_spec in pre_specs
+            }.values()
+        )
 
     def fetch_pre_specification_by_no(self, reference, category_hint=None):
         pre_spec_no = extract_pre_spec_reference(reference)
@@ -68,14 +72,14 @@ class PreSpecificationApi:
                 "bfSpecRgstNo": pre_spec_no,
                 "type": "json",
             }
-            data = request_json(
+            items, total_count = fetch_all_pages(
                 BASE_URL + ENDPOINTS[category],
                 params,
                 self.timeout_seconds,
                 "나라장터 사전규격 API",
             )
-            self.last_total_count = parse_total_count(data)
-            for item in parse_items(data):
+            self.last_total_count = total_count
+            for item in items:
                 found = self._normalize(category, item)
                 if found.pre_spec_no.casefold() == pre_spec_no.casefold():
                     return found
@@ -132,13 +136,24 @@ class PreSpecificationApi:
             "bfSpecRgstNo": pre_spec_no,
             "type": "json",
         }
-        data = request_json(
+        items, _total_count = fetch_all_pages(
             BASE_URL + endpoint,
             params,
             self.timeout_seconds,
             "나라장터 사전규격 의견 API",
         )
-        return [self._normalize_opinion(item) for item in parse_items(data)]
+        opinions = [self._normalize_opinion(item) for item in items]
+        unique = {}
+        for index, opinion in enumerate(opinions):
+            key = (
+                opinion["opinion_no"],
+                opinion["reply_no"],
+                opinion["submitted_at"],
+                opinion["title"],
+                opinion["author"],
+            )
+            unique[key if any(key) else ("row", index)] = opinion
+        return list(unique.values())
 
     @staticmethod
     def _normalize_opinion(item):

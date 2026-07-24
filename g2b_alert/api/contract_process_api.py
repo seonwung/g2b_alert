@@ -1,5 +1,4 @@
-from .bid_api import parse_items
-from .http_client import request_json
+from .bid_api import fetch_all_pages
 from ..model.entities import Bid
 
 
@@ -29,14 +28,14 @@ class ContractProcessApi:
             "bfSpecRgstNo": pre_spec_no,
             "type": "json",
         }
-        data = request_json(
+        items, _total_count = fetch_all_pages(
             BASE_URL + endpoint,
             params,
             self.timeout_seconds,
             "나라장터 계약과정통합공개 API",
         )
         candidates = []
-        for item in parse_items(data):
+        for item in items:
             bid_no = _first(item, "bidNtceNo", "bidPbancNo")
             if not bid_no:
                 continue
@@ -60,6 +59,9 @@ class ContractProcessApi:
             )
         if not candidates:
             return None
+        candidates = list(
+            {candidate.unique_id: candidate for candidate in candidates}.values()
+        )
         return max(candidates, key=lambda bid: _order_key(bid.bid_ord))
 
 

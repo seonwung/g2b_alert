@@ -81,6 +81,10 @@ class ResultMonitorService:
             if self.bid_api and not transitioned:
                 saved_bid, change_event, tracking_report = self._check_notice_change(saved_bid)
                 tracking_reports.append(tracking_report)
+                if saved_bid is None:
+                    # The user deleted the notice while this cycle was waiting
+                    # for the API response. Do not process or recreate it.
+                    continue
                 if change_event:
                     change_events.append(change_event)
             try:
@@ -259,7 +263,20 @@ class ResultMonitorService:
                 },
             )
 
-        self.bid_repository.save_bid(latest)
+        updated_id, _created = self.bid_repository.save_bid(
+            latest,
+            existing_saved_id=saved_bid.id,
+        )
+        if updated_id is None:
+            return (
+                None,
+                None,
+                {
+                    "bid_no": saved_bid.bid_no,
+                    "status": "deleted",
+                    "reason": "조회 중 삭제되어 갱신을 건너뛰었습니다.",
+                },
+            )
         current = self.bid_repository.find_saved_bid(saved_bid.bid_no) or saved_bid
         current_order = current.bid_ord or ""
         if current_order == previous_order:

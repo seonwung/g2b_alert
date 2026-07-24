@@ -41,12 +41,28 @@ def compare_latest_versions(versions):
             changes.append({"field": field, "label": label, "before": before, "after": after})
 
     if _normalize(_attachments(previous_raw)) != _normalize(_attachments(current_raw)):
+        previous_files = _attachment_names(previous_raw)
+        current_files = _attachment_names(current_raw)
+        previous_keys = {_normalize(value): value for value in previous_files}
+        current_keys = {_normalize(value): value for value in current_files}
+        added = [
+            value
+            for key, value in current_keys.items()
+            if key not in previous_keys
+        ]
+        removed = [
+            value
+            for key, value in previous_keys.items()
+            if key not in current_keys
+        ]
         changes.append(
             {
                 "field": "attachments",
                 "label": "첨부파일",
-                "before": _attachment_display(previous_raw),
-                "after": _attachment_display(current_raw),
+                "before": f"{len(previous_files)}개",
+                "after": f"{len(current_files)}개",
+                "attachment_added": added,
+                "attachment_removed": removed,
             }
         )
 
@@ -93,7 +109,7 @@ def _attachments(raw):
     return ", ".join(dict.fromkeys(value for value in values if value))
 
 
-def _attachment_display(raw):
+def _attachment_names(raw):
     names = []
     urls = []
     for key, value in raw.items():
@@ -109,9 +125,12 @@ def _attachment_display(raw):
             urls.append(text)
     names = list(dict.fromkeys(names))
     if names:
-        return ", ".join(names)
+        return names
     url_count = len(dict.fromkeys(urls))
-    return f"첨부파일 {url_count}개" if url_count else "첨부파일 없음"
+    return [
+        f"첨부파일 {index}"
+        for index in range(1, url_count + 1)
+    ]
 
 
 def _cancellation(raw):

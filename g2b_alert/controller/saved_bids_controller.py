@@ -151,6 +151,7 @@ class SavedBidsControllerMixin:
                 report = download(notice, overwrite=overwrite)
                 downloaded = len(report.get("downloaded", []))
                 existing = len(report.get("existing", []))
+                removed = len(report.get("removed", []))
                 failed = len(report.get("failed", []))
                 if downloaded:
                     message = f"{notice.title}\n첨부파일 {downloaded}개 저장 완료"
@@ -160,6 +161,11 @@ class SavedBidsControllerMixin:
                     message = f"{notice.title}\n첨부파일 {failed}개 다운로드 실패"
                 else:
                     message = f"{notice.title}\n다운로드할 첨부파일이 없습니다."
+                if removed:
+                    message += f"\n이전 첨부파일 {removed}개 삭제"
+                    self.log(
+                        f"이전 첨부파일 삭제: {notice.title} / {removed}개"
+                    )
                 if self.config.windows_notifications_enabled:
                     WindowsNotifier(logger=self.logger).send(
                         "저장공고 첨부파일", message
@@ -173,10 +179,12 @@ class SavedBidsControllerMixin:
             name="saved-notice-attachment-download",
         ).start()
 
-    def refresh_saved_bids(self, select_id=None):
-        self.view.post(lambda: self._refresh_saved_bids_on_ui(select_id))
+    def refresh_saved_bids(self, select_id=None, select_ids=None):
+        self.view.post(
+            lambda: self._refresh_saved_bids_on_ui(select_id, select_ids)
+        )
 
-    def _refresh_saved_bids_on_ui(self, select_id=None):
+    def _refresh_saved_bids_on_ui(self, select_id=None, select_ids=None):
         try:
             search_text = self.view.get_saved_search_text()
             rows = self.bid_repository.list_saved_bids(search_text)
@@ -188,7 +196,9 @@ class SavedBidsControllerMixin:
             return
 
         self.view.render_saved_bids(rows)
-        if select_id is not None:
+        if select_ids:
+            self.view.select_saved_bids(select_ids)
+        elif select_id is not None:
             self.view.select_saved_bid(select_id)
         monitoring_count = sum(1 for row in rows if row.monitoring_enabled)
         self._update_saved_monitor_status(monitoring_count, len(rows))
@@ -215,26 +225,70 @@ class SavedBidsControllerMixin:
         self.start_saved_result_monitor_if_needed()
 
     def toggle_saved_bid_monitoring(self):
-        row = self.view.get_selected_saved_bid()
-        if not row:
+        rows = self.view.get_selected_saved_bids()
+        if not rows:
             self.view.show_info("확인", "조회대상 여부를 변경할 공고를 선택해 주세요.")
             return
-        enabled = not row.monitoring_enabled
+        enabled = not all(row.monitoring_enabled for row in rows)
+        self._set_saved_bid_monitoring(rows, enabled, show_confirmation=True)
+
+    def set_saved_bid_monitoring(self, row, enabled):
+        if not row:
+            return
+        selected_rows = self.view.get_selected_saved_bids()
+        selected_ids = [item.id for item in selected_rows]
+        target_rows = (
+            selected_rows
+            if len(selected_rows) > 1
+            and any(item.id == row.id for item in selected_rows)
+            else [row]
+        )
+        self._set_saved_bid_monitoring(
+            target_rows,
+            bool(enabled),
+            selected_ids=selected_ids,
+            show_confirmation=False,
+        )
+
+    def _set_saved_bid_monitoring(
+        self,
+        rows,
+        enabled,
+        *,
+        selected_ids=None,
+        show_confirmation=False,
+    ):
+        rows = list(rows or [])
+        if not rows:
+            return
+        row_ids = [row.id for row in rows]
         try:
-            self.bid_repository.set_monitoring_enabled(row.id, enabled)
+            self.bid_repository.set_monitoring_enabled_many(row_ids, enabled)
         except Exception as error:
             self.logger.exception("Monitoring toggle failed.")
             self.view.show_error("변경 실패", f"모니터링 설정 변경에 실패했습니다.\n\n{error}")
             return
 
-        self.refresh_saved_bids(select_id=row.id)
-        self.log(f"저장 공고 낙찰정보 조회대상 {'ON' if enabled else 'OFF'}: {row.bid_no}")
-        self.start_saved_result_monitor_if_needed(show_warning=True)
-        self.view.show_info(
-            "조회대상 변경",
-            f"선택한 공고를 낙찰정보 자동 감시 대상에서 {'포함' if enabled else '제외'}했습니다.\n\n"
-            f"조회대상 ON인 공고는 {self._get_result_interval()}분마다 낙찰정보 API로 확인합니다.",
+        selected_ids = list(selected_ids or row_ids)
+        if not selected_ids:
+            selected_ids = row_ids
+        self.refresh_saved_bids(select_ids=selected_ids)
+        references = ", ".join(row.bid_no for row in rows[:3])
+        if len(rows) > 3:
+            references += f" 외 {len(rows) - 3}건"
+        self.log(
+            f"저장 공고 낙찰정보 조회대상 {'ON' if enabled else 'OFF'} "
+            f"{len(rows)}건: {references}"
         )
+        self.start_saved_result_monitor_if_needed(show_warning=True)
+        if show_confirmation:
+            self.view.show_info(
+                "조회대상 변경",
+                f"선택한 공고 {len(rows)}건을 낙찰정보 자동 감시 대상에서 "
+                f"{'포함' if enabled else '제외'}했습니다.\n\n"
+                f"조회대상 ON인 공고는 {self._get_result_interval()}분마다 "
+                "낙찰정보 API로 확인합니다.",
+            )
 
     def open_saved_bid_link(self):
         row = self.view.get_selected_saved_bid()
@@ -247,15 +301,39 @@ class SavedBidsControllerMixin:
         self.open_link(row.link)
 
     def show_saved_bid_detail(self):
-        row = self.view.get_selected_saved_bid()
-        if not row:
+        rows = self.view.get_selected_saved_bids()
+        if not rows:
+            row = self.view.get_selected_saved_bid()
+            rows = [row] if row else []
+        if not rows:
             self.view.show_info("확인", "상세보기할 공고를 선택해 주세요.")
             return
+        config = None
+        missing_api_key_warned = False
+        for row in rows:
+            if row.status == "pre_spec" and row.pre_spec_no:
+                if config is None:
+                    config = self.read_config_from_screen()
+                if not config.api_key:
+                    if not missing_api_key_warned:
+                        self.view.show_warning(
+                            "확인",
+                            "사전규격 상세정보를 조회하려면 API 키가 필요합니다.",
+                        )
+                        missing_api_key_warned = True
+                    continue
+                self._show_pre_spec_detail_async(row, config)
+                continue
+            try:
+                detail = self._build_saved_bid_detail(row)
+            except Exception as error:
+                self.logger.exception("Could not build saved bid detail.")
+                self.view.show_error("상세정보 조회 실패", str(error))
+                continue
+            self.view.show_saved_bid_detail(detail)
+
+    def _show_pre_spec_detail_async(self, row, config):
         if row.status == "pre_spec" and row.pre_spec_no:
-            config = self.read_config_from_screen()
-            if not config.api_key:
-                self.view.show_warning("확인", "사전규격 상세정보를 조회하려면 API 키가 필요합니다.")
-                return
             self.set_status("사전규격 상세 조회 중")
 
             def run_pre_spec_detail():
@@ -291,14 +369,6 @@ class SavedBidsControllerMixin:
                 daemon=True,
                 name="pre-specification-detail",
             ).start()
-            return
-        try:
-            detail = self._build_saved_bid_detail(row)
-        except Exception as error:
-            self.logger.exception("Could not build saved bid detail.")
-            self.view.show_error("상세정보 조회 실패", str(error))
-            return
-        self.view.show_saved_bid_detail(detail)
 
     def _build_saved_bid_detail(self, row, pre_spec_detail=None):
         versions = self.bid_repository.list_notice_versions(row.id)
@@ -321,12 +391,15 @@ class SavedBidsControllerMixin:
             return
         try:
             versions = self.bid_repository.list_notice_versions(row.id)
-            comparison = compare_latest_versions(versions)
+            comparisons = [
+                compare_latest_versions(versions[: index + 1])
+                for index in range(len(versions))
+            ]
         except Exception as error:
             self.logger.exception("Could not load notice versions.")
             self.view.show_error("변경이력 조회 실패", str(error))
             return
-        self.view.show_notice_version_history(row, versions, comparison)
+        self.view.show_notice_version_history(row, versions, comparisons)
 
     @staticmethod
     def _filter_saved_bids(rows, filters):

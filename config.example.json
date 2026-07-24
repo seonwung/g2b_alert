@@ -29,7 +29,7 @@
   "num_of_rows": 100,
   "notify_all_opening_results": true,
   "keyword_email_enabled": false,
-  "prespec_search_enabled": false,
+  "prespec_search_enabled": false, 
   "smtp_host": "smtp.gmail.com",
   "smtp_port": 587,
   "smtp_username": "alerts@example.com",

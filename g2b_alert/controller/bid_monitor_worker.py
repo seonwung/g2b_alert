@@ -5,12 +5,22 @@ import time
 class BidMonitorWorker:
     """Controller-layer worker preserving completion-then-wait polling."""
 
-    def __init__(self, config, keywords, service_factory, on_complete, on_error):
+    def __init__(
+        self,
+        config,
+        keywords,
+        service_factory,
+        on_complete,
+        on_error,
+        *,
+        bootstrap_first_check=False,
+    ):
         self.config = config
         self.keywords = keywords
         self.service_factory = service_factory
         self.on_complete = on_complete
         self.on_error = on_error
+        self.bootstrap_first_check = bool(bootstrap_first_check)
         self.running = False
         self.stop_event = threading.Event()
         self.worker = None
@@ -66,10 +76,18 @@ class BidMonitorWorker:
                 config = self.config
                 keywords = self.keywords
                 service_factory = self.service_factory
-            summary = service_factory().check_once(config, keywords)
+                bootstrap_first_check = self.bootstrap_first_check
+            summary = service_factory().check_once(
+                config,
+                keywords,
+                use_last_check=not bootstrap_first_check,
+            )
         except Exception as error:
             self.on_error(error)
         else:
+            if bootstrap_first_check and summary.get("all_success", False):
+                with self.state_lock:
+                    self.bootstrap_first_check = False
             self.on_complete(summary)
         finally:
             self.check_lock.release()

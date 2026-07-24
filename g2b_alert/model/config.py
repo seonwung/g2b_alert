@@ -124,7 +124,7 @@ def ensure_keyword_rules(config: AppConfig) -> AppConfig:
                             "operator": operator,
                             "categories": categories,
                             "targets": targets,
-                            "enabled": True,
+                            "enabled": False,
                         }
                     )
 
@@ -175,7 +175,7 @@ def normalize_keyword_rules(source_rules, default_categories=ALL_CATEGORIES):
             "operator": operator,
             "categories": categories,
             "targets": targets or ["bid_lifecycle"],
-            "enabled": bool(rule.get("enabled", True)),
+            "enabled": bool(rule.get("enabled", False)),
         }
         # Preserve legacy round-trips while allowing the new Figma condition name.
         if "name" in rule:

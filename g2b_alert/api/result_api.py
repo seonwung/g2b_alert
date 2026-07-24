@@ -1,5 +1,4 @@
-from .bid_api import parse_items
-from .http_client import request_json
+from .bid_api import fetch_all_pages
 from ..model.entities import BidResult
 
 
@@ -48,8 +47,14 @@ class ResultApiService:
             "numOfRows": str(self.num_of_rows),
             "type": "json",
         }
-        data = request_json(url, params, self.timeout_seconds, "나라장터 낙찰정보 API")
-        return [self._normalize(item) for item in parse_items(data)]
+        items, _total_count = fetch_all_pages(
+            url,
+            params,
+            self.timeout_seconds,
+            "나라장터 낙찰정보 API",
+        )
+        results = [self._normalize(item) for item in items]
+        return list({result.result_key: result for result in results}.values())
 
     def _normalize(self, item):
         opening_company_name, opening_business_number = split_opening_company_info(

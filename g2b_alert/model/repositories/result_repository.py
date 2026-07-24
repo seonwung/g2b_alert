@@ -26,7 +26,9 @@ class ResultRepository:
                     successful_bid_rate, ranking, result_status, result_key, raw_json,
                     detected_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                FROM saved_bids
+                WHERE id = ?
                 """,
                 (
                     saved_bid.id,
@@ -44,9 +46,16 @@ class ResultRepository:
                     json.dumps(result.raw or {}, ensure_ascii=False),
                     current,
                     current,
+                    saved_bid.id,
                 ),
             )
             if cursor.rowcount == 0:
+                parent_exists = connection.execute(
+                    "SELECT 1 FROM saved_bids WHERE id = ?",
+                    (saved_bid.id,),
+                ).fetchone()
+                if not parent_exists:
+                    return False
                 connection.execute(
                     """
                     UPDATE bid_results
@@ -94,8 +103,17 @@ class ResultRepository:
                 INSERT OR IGNORE INTO notification_history (
                     saved_bid_id, notification_type, notification_key, message, notified_at
                 )
-                VALUES (?, ?, ?, ?, ?)
+                SELECT ?, ?, ?, ?, ?
+                FROM saved_bids
+                WHERE id = ?
                 """,
-                (saved_bid_id, notification_type, notification_key, message, self._now_text()),
+                (
+                    saved_bid_id,
+                    notification_type,
+                    notification_key,
+                    message,
+                    self._now_text(),
+                    saved_bid_id,
+                ),
             )
             return cursor.rowcount > 0

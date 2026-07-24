@@ -47,6 +47,7 @@ class ResultMonitorWorker:
             self.stop_event.wait(interval * 60)
             if self.running:
                 self.stop_event.clear()
+                
 
     def check_once(self):
         if not self.check_lock.acquire(blocking=False):

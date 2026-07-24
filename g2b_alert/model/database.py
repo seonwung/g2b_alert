@@ -61,7 +61,7 @@ class G2BDatabase:
                     raw_json TEXT,
                     saved_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
-                    monitoring_enabled INTEGER NOT NULL DEFAULT 1,
+                    monitoring_enabled INTEGER NOT NULL DEFAULT 0,
                     status TEXT NOT NULL DEFAULT 'saved',
                     last_result_check_at TEXT,
                     result_found_at TEXT,
@@ -193,6 +193,9 @@ class G2BDatabase:
                     recipient_id INTEGER NOT NULL,
                     recipient_name TEXT NOT NULL,
                     recipient_email TEXT NOT NULL,
+                    subject TEXT NOT NULL DEFAULT '',
+                    body TEXT NOT NULL DEFAULT '',
+                    body_html TEXT NOT NULL DEFAULT '',
                     status TEXT NOT NULL DEFAULT 'pending',
                     retry_count INTEGER NOT NULL DEFAULT 0,
                     last_error TEXT,
@@ -227,6 +230,36 @@ class G2BDatabase:
                 connection.execute(
                     "ALTER TABLE email_events ADD COLUMN body_html TEXT NOT NULL DEFAULT ''"
                 )
+            email_delivery_columns = {
+                row["name"]
+                for row in connection.execute(
+                    "PRAGMA table_info(email_deliveries)"
+                ).fetchall()
+            }
+            for column in ("subject", "body", "body_html"):
+                if column not in email_delivery_columns:
+                    connection.execute(
+                        f"ALTER TABLE email_deliveries "
+                        f"ADD COLUMN {column} TEXT NOT NULL DEFAULT ''"
+                    )
+            connection.execute(
+                """
+                UPDATE email_deliveries
+                SET subject = COALESCE(NULLIF(subject, ''), (
+                        SELECT subject FROM email_events
+                        WHERE email_events.id = email_deliveries.event_id
+                    )),
+                    body = COALESCE(NULLIF(body, ''), (
+                        SELECT body FROM email_events
+                        WHERE email_events.id = email_deliveries.event_id
+                    )),
+                    body_html = COALESCE(NULLIF(body_html, ''), (
+                        SELECT body_html FROM email_events
+                        WHERE email_events.id = email_deliveries.event_id
+                    ))
+                WHERE subject = '' OR body = ''
+                """
+            )
             recipient_columns = {
                 row["name"] for row in connection.execute("PRAGMA table_info(recipients)").fetchall()
             }

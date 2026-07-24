@@ -1,4 +1,5 @@
 from datetime import datetime
+import math
 import re
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -35,6 +36,42 @@ def parse_total_count(data):
         return int(value or 0)
     except (TypeError, ValueError):
         return 0
+
+
+def fetch_all_pages(url, params, timeout_seconds, source_label):
+    """Return every API item instead of silently dropping rows after page 1."""
+    page_params = dict(params)
+    try:
+        rows_per_page = max(1, int(page_params.get("numOfRows") or 100))
+    except (TypeError, ValueError):
+        rows_per_page = 100
+    page_params["numOfRows"] = str(rows_per_page)
+    page_params["pageNo"] = "1"
+
+    first_page = request_json(
+        url,
+        page_params,
+        timeout_seconds,
+        source_label,
+    )
+    total_count = parse_total_count(first_page)
+    items = list(parse_items(first_page))
+    page_count = max(1, math.ceil(total_count / rows_per_page))
+
+    for page_number in range(2, page_count + 1):
+        page_params["pageNo"] = str(page_number)
+        page_data = request_json(
+            url,
+            page_params,
+            timeout_seconds,
+            source_label,
+        )
+        page_items = parse_items(page_data)
+        if not page_items:
+            break
+        items.extend(page_items)
+
+    return items, total_count
 
 
 def split_bid_reference(bid_reference):
@@ -107,9 +144,14 @@ class G2BClient:
             "type": "json",
         }
 
-        data = request_json(url, params, self.timeout_seconds, "나라장터 입찰공고 API")
-        self.last_total_count = parse_total_count(data)
-        return [self._to_bid_item(category, item) for item in parse_items(data)]
+        items, self.last_total_count = fetch_all_pages(
+            url,
+            params,
+            self.timeout_seconds,
+            "나라장터 입찰공고 API",
+        )
+        bids = [self._to_bid_item(category, item) for item in items]
+        return list({bid.unique_id: bid for bid in bids}.values())
 
     def fetch_bid_by_no(self, bid_reference, category_hint=None):
         bid_no, bid_ord = split_bid_reference(bid_reference)
@@ -128,8 +170,13 @@ class G2BClient:
                 "numOfRows": str(self.num_of_rows),
                 "type": "json",
             }
-            data = request_json(url, params, self.timeout_seconds, "나라장터 입찰공고 API")
-            for item in parse_items(data):
+            items, self.last_total_count = fetch_all_pages(
+                url,
+                params,
+                self.timeout_seconds,
+                "나라장터 입찰공고 API",
+            )
+            for item in items:
                 found = self._to_bid_item(category, item)
                 if found.bid_no != bid_no:
                     continue
@@ -138,6 +185,9 @@ class G2BClient:
                 candidates.append(found)
         if not candidates:
             return None
+        candidates = list(
+            {candidate.unique_id: candidate for candidate in candidates}.values()
+        )
         if bid_ord:
             return candidates[0]
         return max(candidates, key=lambda bid: _bid_order_sort_key(bid.bid_ord))
