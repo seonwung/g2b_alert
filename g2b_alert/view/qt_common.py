@@ -150,27 +150,39 @@ class HelpIcon(QLabel):
     def _ensure_popup(self):
         if self._popup is not None:
             return
-        self._popup = QFrame(
+        self._popup = QWidget(
             self.window(),
             Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint,
         )
-        self._popup.setObjectName("helpTooltipPopup")
+        self._popup.setObjectName("helpTooltipWindow")
         self._popup.setAttribute(
             Qt.WidgetAttribute.WA_ShowWithoutActivating,
             True,
         )
-        layout = QVBoxLayout(self._popup)
-        layout.setContentsMargins(14, 11, 14, 11)
-        text = QLabel(self.description)
+        self._popup.setAttribute(
+            Qt.WidgetAttribute.WA_TranslucentBackground,
+            True,
+        )
+        self._popup.setAutoFillBackground(False)
+        popup_layout = QVBoxLayout(self._popup)
+        popup_layout.setContentsMargins(9, 7, 9, 11)
+
+        popup_card = QFrame(self._popup)
+        popup_card.setObjectName("helpTooltipCard")
+        card_layout = QVBoxLayout(popup_card)
+        card_layout.setContentsMargins(14, 11, 14, 11)
+        text = QLabel(self.description, popup_card)
         text.setObjectName("helpTooltipText")
         text.setWordWrap(True)
         text.setFixedWidth(self.popup_width)
-        layout.addWidget(text)
-        shadow = QGraphicsDropShadowEffect(self._popup)
+        card_layout.addWidget(text)
+        popup_layout.addWidget(popup_card)
+
+        shadow = QGraphicsDropShadowEffect(popup_card)
         shadow.setBlurRadius(18)
         shadow.setOffset(0, 4)
         shadow.setColor(QColor(20, 25, 32, 50))
-        self._popup.setGraphicsEffect(shadow)
+        popup_card.setGraphicsEffect(shadow)
 
     def _show_popup(self):
         if not self.description:

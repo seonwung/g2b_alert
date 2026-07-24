@@ -34,7 +34,8 @@ QFrame#header, QFrame#subbar {{ background: transparent; border: none; }}
 QFrame[card='true'] {{ background: {CARD_BG}; border: 1px solid {Colors.CARD_BORDER}; border-radius: 11px; }}
 QWidget#emailSettingsPanel {{ background: transparent; border: none; }}
 QWidget#modalOverlay {{ background: rgba(20, 20, 20, 105); border: none; }}
-QFrame#helpTooltipPopup {{ background: #FFFFFF; border: 1px solid {Colors.CARD_BORDER}; border-radius: 7px; }}
+QWidget#helpTooltipWindow {{ background: transparent; border: none; }}
+QFrame#helpTooltipCard {{ background: #FFFFFF; border: 1px solid {Colors.CARD_BORDER}; border-radius: 7px; }}
 QLabel#helpTooltipText {{ background: transparent; border: none; color: #5F6670; font-size: 10pt; font-weight: 500; }}
 QDialog#smtpTestDialog {{ background: transparent; border: none; }}
 QFrame#smtpTestCard {{ background: {CARD_BG}; border: 1px solid {Colors.CARD_BORDER}; border-radius: 12px; }}
