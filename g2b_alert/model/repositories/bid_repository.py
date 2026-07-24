@@ -501,8 +501,21 @@ class BidRepository:
         return [SavedBid.from_row(row) for row in rows]
 
     def delete_saved_bid(self, saved_bid_id):
+        return self.delete_saved_bids([saved_bid_id])
+
+    def delete_saved_bids(self, saved_bid_ids):
+        saved_bid_ids = list(
+            dict.fromkeys(int(saved_bid_id) for saved_bid_id in saved_bid_ids)
+        )
+        if not saved_bid_ids:
+            return 0
+        placeholders = ", ".join("?" for _ in saved_bid_ids)
         with self.connect() as connection:
-            connection.execute("DELETE FROM saved_bids WHERE id = ?", (saved_bid_id,))
+            cursor = connection.execute(
+                f"DELETE FROM saved_bids WHERE id IN ({placeholders})",
+                saved_bid_ids,
+            )
+        return cursor.rowcount
 
     def set_monitoring_enabled(self, saved_bid_id, enabled):
         self.set_monitoring_enabled_many([saved_bid_id], enabled)

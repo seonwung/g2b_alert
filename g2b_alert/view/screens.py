@@ -93,6 +93,7 @@ class ConditionDialog(DraggableDialog):
 
         self.name = QLineEdit(self.rule.get("name") or self.rule.get("keyword", ""))
         self.name.setPlaceholderText("조건명 입력")
+        self.name.setToolTip("Enter를 누르면 조건을 저장합니다.")
         card.layout.addWidget(self._field_group("조건명", self.name))
 
         keyword_group = QWidget()
@@ -106,7 +107,11 @@ class ConditionDialog(DraggableDialog):
         keyword_row.setSpacing(6)
         self.keyword = QLineEdit()
         self.keyword.setPlaceholderText("검색 키워드 입력")
-        self.keyword.returnPressed.connect(self.add_keyword)
+        self.keyword.setToolTip(
+            "Enter로 키워드를 등록합니다. 등록 후 빈 입력칸에서 Enter를 한 번 더 누르면 조건이 저장됩니다."
+        )
+        self.name.installEventFilter(self)
+        self.keyword.installEventFilter(self)
         keyword_row.addWidget(self.keyword, 1)
         register_keyword = button(
             "등록",
@@ -194,6 +199,19 @@ class ConditionDialog(DraggableDialog):
         save_button.setFixedWidth(52)
         footer.addWidget(save_button)
         card.layout.addLayout(footer)
+
+    def eventFilter(self, watched, event):
+        if (
+            watched in (self.name, self.keyword)
+            and event.type() == QEvent.Type.KeyPress
+            and event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}
+        ):
+            if watched is self.keyword and self.keyword.text().strip():
+                self.add_keyword()
+            else:
+                self._validate()
+            return True
+        return super().eventFilter(watched, event)
 
     @staticmethod
     def _field_group(label_text, field):
@@ -739,7 +757,7 @@ class SavedBidsPage(Page):
         setup_table(
             self.table,
             ["단계", "추적", "공고번호", "공고명", "업무", "수요기관", "사업금액", "결과"],
-            [68, 44, 112, 300, 56, 140, 110, 82],
+            [68, 44, 112, 300, 56, 140, 110, 128],
         )
         saved_header = self.table.horizontalHeader()
         saved_header.setStretchLastSection(False)

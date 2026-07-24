@@ -204,24 +204,43 @@ class SavedBidsControllerMixin:
         self._update_saved_monitor_status(monitoring_count, len(rows))
 
     def permanently_delete_saved_bid(self):
-        row = self.view.get_selected_saved_bid()
-        if not row:
+        rows = list(self.view.get_selected_saved_bids() or [])
+        if not rows:
+            row = self.view.get_selected_saved_bid()
+            rows = [row] if row else []
+        if not rows:
             self.view.show_info("확인", "완전히 삭제할 공고를 선택해 주세요.")
             return
+        rows = list({row.id: row for row in rows}.values())
+        count = len(rows)
+        confirmation_target = (
+            "선택한 공고"
+            if count == 1
+            else f"선택한 공고 {count}건"
+        )
         if not self.view.ask_yes_no(
             "완전 삭제 확인",
-            "선택한 공고와 관련 결과·수신자 연결·알림 이력을 완전히 삭제할까요?\n\n"
+            f"{confirmation_target}과 관련 결과·수신자 연결·알림 이력을 완전히 삭제할까요?\n\n"
             "이 작업은 되돌릴 수 없습니다.",
         ):
             return
         try:
-            self.bid_repository.delete_saved_bid(row.id)
+            deleted_count = self.bid_repository.delete_saved_bids(
+                [row.id for row in rows]
+            )
         except Exception as error:
-            self.logger.exception("Delete saved bid failed.")
+            self.logger.exception("Delete saved bids failed.")
             self.view.show_error("삭제 실패", f"완전 삭제에 실패했습니다.\n\n{error}")
             return
         self.refresh_saved_bids()
-        self.log(f"저장 공고 완전 삭제: {row.bid_no}")
+        references = ", ".join(
+            (row.pre_spec_no or row.bid_no) for row in rows[:3]
+        )
+        if count > 3:
+            references += f" 외 {count - 3}건"
+        self.log(
+            f"저장 공고 완전 삭제 {deleted_count}건: {references}"
+        )
         self.start_saved_result_monitor_if_needed()
 
     def toggle_saved_bid_monitoring(self):

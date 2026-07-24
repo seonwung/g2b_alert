@@ -295,7 +295,7 @@ class MainView(QMainWindow):
             stage_color = STAGE_COLORS.get(str(values[0]))
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value or "-"))
-                if column in {2, 3, 5, 6}:
+                if column in {2, 3, 5, 6, 7}:
                     item.setToolTip(str(value or "-"))
                 if stage_color:
                     item.setBackground(QBrush(QColor(stage_color)))

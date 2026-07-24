@@ -74,6 +74,33 @@ class DeletedNoticeRaceTests(TemporaryDatabaseTestCase):
         self.assertEqual(notification_count, 0)
 
 
+class BatchSavedBidDeleteTests(TemporaryDatabaseTestCase):
+    def test_selected_saved_bids_are_deleted_together(self):
+        first_id, _created = self.database.bids.save_bid(
+            Bid("service", "첫 번째 공고", "BATCH-1", "000", "", "", "")
+        )
+        second_id, _created = self.database.bids.save_bid(
+            Bid("service", "두 번째 공고", "BATCH-2", "000", "", "", "")
+        )
+        third_id, _created = self.database.bids.save_bid(
+            Bid("service", "남길 공고", "BATCH-3", "000", "", "", "")
+        )
+
+        deleted_count = self.database.bids.delete_saved_bids(
+            [first_id, second_id, first_id]
+        )
+
+        self.assertEqual(deleted_count, 2)
+        with self.database.connect() as connection:
+            remaining_ids = {
+                row["id"]
+                for row in connection.execute(
+                    "SELECT id FROM saved_bids ORDER BY id"
+                ).fetchall()
+            }
+        self.assertEqual(remaining_ids, {third_id})
+
+
 class KeywordCardMatchingTests(unittest.TestCase):
     @staticmethod
     def _rule(rule_id, keyword, operator="or"):
